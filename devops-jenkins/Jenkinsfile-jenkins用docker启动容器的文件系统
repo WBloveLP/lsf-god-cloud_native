@@ -1,0 +1,35 @@
+
+pipeline{
+    agent any
+
+    environment {
+      WS = "${WORKSPACE}"
+    }
+
+    stages {
+        stage('maven编译'){
+            agent {
+                docker {
+                    image 'maven:3-alpine'
+                    // 用宿主机的docker运行，-v,就是挂载docker的宿主机
+                    args '-v /var/maven3/.m2:/root/.m2'
+                 }
+            }
+            steps {
+                //-s ，肯定要用jenkins能访问的文件位置
+                sh 'cd ${WS} && mvn clean package -s "/var/jenkins_home/maven3/settings.xml"  -Dmaven.test.skip=true'
+
+                // 在流水线中，由jenkins启动的docker容器
+                // jenkins都能访问该容器的文件系统
+                sh 'cd /root/.m2 && ls -alh'
+            }
+        }
+
+        stage('生成镜像并运行'){
+            steps {
+                sh 'docker build -t java-devops-demo .'
+                sh 'docker run --rm -d -p 8081:8081 java-devops-demo'
+            }
+        }
+    }
+}

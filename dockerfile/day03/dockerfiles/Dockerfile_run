@@ -1,0 +1,55 @@
+# 不可以引用多个
+FROM alpine
+
+LABEL maintainer="leifengyang @ dd" \
+abc=def \
+aaa=bbb cccc=ddd   
+
+#指定构建参数【构建时有效】
+ARG aaa=liupengxxx
+
+#指定环境变量【为后面的RUN以及CMD 指定环境变量】
+# ENV的内容会被固化保存到docker的镜像配置中 可以使用docker inspect查看
+ENV parm=8888888899
+
+# shell 形式； bash -c "echo 11111"
+# 不用使用""
+RUN echo $parm; echo $aaa
+RUN echo ${parm}; echo ${aaa}
+
+#  exec 形式。
+# 要使用""
+RUN ["echo","$parm"]
+RUN ["echo","$aaa"]
+RUN ["echo","${parm}"]
+RUN ["echo","${aaa}"]
+
+RUN ["echo","env  parm is $parm"]
+RUN ["echo","arg  aaa is $aaa"]
+RUN ["echo","env  parm is ${parm}"]
+RUN ["echo","arg  aaa is ${aaa}"]
+
+
+# ENTRYPOINT和CMD不要用ARG，也用不了
+
+
+CMD sleep 1;echo $parm;echo $aaa;echo ${aaa};echo ${parm}
+# ENTRYPOINT sleep 1;echo $parm;echo $aaa;echo ${aaa};echo ${parm}
+
+# docker build -t myalpine:v111 --no-cache -f Dockerfile_run  .
+
+
+
+# RUN，CMD，ENTRYPOINT下的：
+# []:  ["/bin/sh","-c"] = shell
+# shell:
+# 因此
+#--------------------------------------------------
+# FROM alpine
+# ENV url=jd.com
+# CMD ["ping","baidu.com"]
+# CMD ["ping","${url}"] # 取不出变量
+# CMD ping ${url}
+# 官方都是建议使用这种方式：
+# CMD ["/bin/sh","-c","ping ${url}"]
+#--------------------------------------------------

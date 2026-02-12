@@ -1,0 +1,73 @@
+pipeline{
+
+// 如果这儿写的是agent none，那么下面的每一个stage都必须写agent
+    agent any
+
+    environment {
+      hello = "123456"
+      world = "456789"
+      WS = "${WORKSPACE}"
+    }
+
+    stages {
+        stage('环境检查'){
+            steps {
+                echo "当前目录："
+                sh 'pwd && ls -alh'
+                echo "正在检测基本信息"
+                sh 'printenv'
+                sh 'java -version'
+                sh 'git --version'
+                sh 'docker version'
+                sh "echo $hello 666"
+                sh 'echo ${world}'
+            }
+        }
+
+        stage('maven编译') {
+         //jenkins不配置任何环境的情况下， 仅适用docker 兼容所有场景
+            agent {
+                // 当流水线执行时, Jenkins 将会自动地用docker启动指定的容器并在其中执行指定的步骤
+                docker {
+                    image 'maven:3-alpine'
+                    // args '-v /var/jenkins_home/appconfig/maven/.m2:/root/.m2'
+                    //如何让他使用阿里云maven源
+                        //全局配置：${MAVEN_HOME}/conf/settings.xml
+                        //用户配置：~/.m2/settings.xml
+                        //项目配置：项目根目录/.mvn/settings.xml
+                    // docker启动，/usr/share/maven3/settings.xml就是在宿主机目录下
+                    // 宿主机   copy to   jenkins的linux系统
+                    args  '-v /usr/share/maven3/settings.xml:/usr/share/maven/conf/settings.xml'
+                }
+            }
+            steps {
+                //git下载来的代码目录下
+                echo "当前目录："
+                sh 'pwd && ls -alh'
+                sh 'mvn -v'
+                sh 'cat /usr/share/maven/conf/settings.xml'
+//                //打包，jar.   默认是从maven中央仓库下载。 jenkins目录+容器目录；-s指定容器内位置
+//                //只要jenkins迁移，不会对我们产生任何影响
+//                sh "echo 默认的工作目录：${WS}"
+//                // sh 'cd ${WS}'
+//                //workdir
+//                //每一行指令都是基于当前环境信息。和上下指令无关
+      //         sh 'cd ${WS} && mvn clean package -s "/usr/share/maven/conf/settings.xml"  -Dmaven.test.skip=true'
+//   Jenkinsfile_copymavensetting
+                 sh 'cd ${WS} && mvn clean package  -Dmaven.test.skip=true'
+//                //jar包推送给maven repo ，nexus
+            }
+        }
+
+        //每一个 stage的开始，都会重置到默认的WORKSPACE位置
+        stage('测试'){
+            steps {
+                echo "当前目录："
+                sh 'pwd && ls -alh'
+                echo "WORKSPACE："
+                echo "${WS}"
+            }
+        }
+    }
+
+}

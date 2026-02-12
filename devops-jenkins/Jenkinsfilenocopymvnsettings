@@ -1,0 +1,39 @@
+pipeline{
+
+    agent any
+
+    environment {
+      WS = "${WORKSPACE}"
+    }
+
+    stages {
+        stage('环境检查'){
+            steps {
+                echo "当前目录："
+                sh 'pwd && ls -alh'
+                echo "正在检测基本信息"
+                sh 'printenv'
+            }
+        }
+
+        stage('maven编译') {
+            agent {
+                // 当流水线执行时, Jenkins 将会自动地用docker启动指定的容器并在其中执行指定的步骤
+                docker {
+                    image 'maven:3-alpine'
+                    //                     args '-v /var/jenkins_home/appconfig/maven/.m2:/root/.m2'
+                }
+            }
+            steps {
+                //由于该容器是jenkins启动的，所以他也可以访问jenkins这个容器的文件系统，比如：jenkins_home
+                //-s的 是 jenkins的linux系统的settings.xml【所以推荐挂载jenkins_home】
+                //-s的 是 手动上传到jenkins_home中的，以后挂载了jenkins_home，就不用这么麻烦了
+                sh 'cd ${WS} && mvn clean package -s "/var/jenkins_home/maven3/settings.xml"  -Dmaven.test.skip=true'
+                sh 'echo 当前目录： &&  pwd  &&  ls -alh'
+                sh 'cd ${WS}/target && ls -alh'
+            }
+        }
+
+    }
+
+}

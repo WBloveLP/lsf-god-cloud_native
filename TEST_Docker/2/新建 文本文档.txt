@@ -1,0 +1,5 @@
+# 1. 构建镜像
+docker build -t tomcat-https:7.0 .
+
+# 2. 运行容器
+docker run -d --name tomcathttps  -p 8080:8080   -p 8443:8443   --restart unless-stopped   tomcat-https:7.0

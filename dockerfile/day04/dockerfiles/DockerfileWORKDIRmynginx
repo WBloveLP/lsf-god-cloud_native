@@ -1,0 +1,8 @@
+FROM nginx:1.10
+WORKDIR /usr/share/nginx/html
+
+
+#剩下都是原来 nginx 默认的
+# docker build --no-cache -t demo:test -f DockerfileWORKDIRmynginx .
+# docker run -d -P --name=mmnginx demo:test
+# docker exec -it mmnginx /bin/bash

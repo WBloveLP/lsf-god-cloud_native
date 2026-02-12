@@ -1,0 +1,45 @@
+# COPY 
+# 把上下文Context指定的内容（宿主机的内容）复制到镜像中
+
+
+# COPY不自动解压和下载
+
+
+# 容器中的ROOT虽然不是linux宿主机的真实root，但是可以改掉这个镜像的所有东西
+# ROOT用户的id是0
+# 以后可以给自己的镜像创建一个用户身份来运行，而不是用root(0)
+# USER 1000:1000 类似这样，直接使用用户id即可
+
+
+
+
+# 以容器的redis用户的redis组的身份运行：
+# COPY  --chown=redis:redis   *.tar.gz  /redis/
+# RUN cd /redis && ls -l
+
+
+# USER user1:group1
+# 接下来的所有命令都用这个用户来运行
+
+
+FROM alpine
+
+
+
+
+
+USER 1000:1000
+# 以后的所有命令会用 1000:1000 身份来执行。
+
+# 有可能没有执行权限
+# COPY  *.txt   /a.txt
+# --chown可以把复制来的文件给用户所有权
+COPY --chown=1000:1000   *.txt   /a.txt
+
+
+RUN ls -l /
+
+RUN  echo 2222 >> /a.txt
+
+# 方便进入容器查看
+CMD sleep 1000000;

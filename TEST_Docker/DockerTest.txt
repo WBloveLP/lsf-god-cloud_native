@@ -1,0 +1,45 @@
+# 拉取Tomcat镜像
+docker pull tomcat:7.0-jre8
+
+
+# 生成HTTPS需要的证书
+mkdir ssl
+cd ssl/
+keytool -genkey -alias tomcat -keyalg RSA -keystore tomcat.keystore
+
+
+# 把证书导入镜像中
+docker run -d -p 8080:8080 --name mytomcat -v C:\\Users\\YAIC\\ssl:/tmp tomcat:7.0-jre8
+docker exec -it mytomcat bash
+mkdir keys
+cp /tmp/tomcat.keystore keys/
+
+
+
+# Tomcat的默认配置文件存在/usr/local/tomcat/conf/server.xml里,修改Tomcat的配置并commit
+<Connector port="8080" protocol="org.apache.coyote.http11.Http11NioProtocol"
+           maxThreads="150" SSLEnabled="true"
+           scheme="https" secure="true" clientAuth="false"
+           keystoreFile="/usr/local/tomcat/keys/tomcat.keystore"
+           keystorePass="tomcat"
+           sslProtocol="TLS" />
+
+cp /tmp/server.xml /usr/local/tomcat/conf/
+
+docker restart mytomcat
+
+
+
+
+docker run -d \
+  --name tomcat-https \
+  -p 8443:8443 \
+  -v C:\\Users\\YAIC\\ssl\\tomcat.keystore:/usr/local/tomcat/conf/keystore.jks \
+  tomcat:7.0-jre8 \
+  /bin/bash -c "\
+    sed -i '/<Service name=\"Catalina\">/a\\
+    <Connector port=\"8443\" protocol=\"org.apache.coyote.http11.Http11Protocol\" \\
+               maxThreads=\"150\" SSLEnabled=\"true\" scheme=\"https\" secure=\"true\" \\
+               keystoreFile=\"conf/keystore.jks\" keystorePass=\"changeit\" \\
+               clientAuth=\"false\" sslProtocol=\"TLS\"/>' /usr/local/tomcat/conf/server.xml && \
+    catalina.sh run"

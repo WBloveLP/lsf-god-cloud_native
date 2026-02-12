@@ -1,0 +1,48 @@
+pipeline{
+    agent any
+
+    environment {
+      WS = "${WORKSPACE}"
+    }
+
+    stages {
+        stage('环境检查'){
+            steps {
+               echo "正在检测基本信息"
+               sh 'printenv'
+               sh 'java -version'
+               sh 'git --version'
+               sh 'docker version'
+               sh 'pwd && ls -alh'
+            }
+        }
+
+        stage('maven编译'){
+            agent {
+                docker {
+                    image 'maven:3-alpine'
+//                     args '-v /var/jenkins_home/appconfig/maven/.m2:/root/.m2'
+                 }
+            }
+            steps {
+               sh 'pwd'
+               sh 'mvn -v'
+               //打包，jar. 默认是从maven中央仓库下载。
+               //jenkins目录+容器目录；
+               //jenkins迁移，不会对我们产生任何影响
+               //每一行指令都是基于当前环境信息。和上下指令无关
+               //-s指定容器内位置
+               //sh 'cd ${WS} && mvn clean package -s "/var/jenkins_home/appconfig/maven/settings.xml"  -Dmaven.test.skip=true '
+               sh 'cd ${WS} && mvn clean package -s "/var/jenkins_home/maven3/settings.xml"  -Dmaven.test.skip=true'
+            }
+        }
+
+        // 每一个 stage的开始，都会重置到默认的WORKSPACE位置
+        stage('测试'){
+            steps {
+                sh 'pwd && ls -alh'
+                echo "测试..."
+            }
+        }
+    }
+}

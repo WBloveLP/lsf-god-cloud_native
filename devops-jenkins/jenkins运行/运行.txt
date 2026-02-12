@@ -1,0 +1,40 @@
+# 常见位置可能有：
+# /var/run/docker.sock
+# /run/docker.sock
+# /var/run/podman/podman.sock
+jenkins要用到宿主机的docker，通过 which docker 命令查询后，发现应这样挂载：-v /usr/bin/docker:/usr/bin/docker   -v /run/docker.sock:/var/run/docker.sock 
+
+
+
+
+docker run   -u  root    -d    -p 8080:8080 -p 50000:50000  --name   jenkinsdemo -v /usr/bin/docker:/usr/bin/docker   -v /run/docker.sock:/var/run/docker.sock   jenkinsci/blueocean
+
+
+
+
+
+配置：【2.346哪来的呢？/var/jenkins_home/config.xml看到的】
+/var/jenkins_home/hudson.model.UpdateCenter.xml：https://mirrors.huaweicloud.com/jenkins/updates/dynamic-2.346/update-center.json
+/var/jenkins_home/updates/default.json：上面UpdateCenter.xml的内容（去除updateCenter.post();【以默认就有的格式粘贴】） && google ==> baidu
+重启jenkins
+
+
+
+进入jenkins后，什么插件都不要安装，以后按需安装【安装docker pipeline插件  Generic Webhook Trigger插件  Email Extension Template（mailext）插件】
+
+
+
+
+
+================================
+
+
+生产环境的jenkins_home很重要，记得备份
+
+
+
+随便搞一个实例，目的只是复制出配置【/var/jenkins_home到D:\lp\gitcode\my_private_repo\docker_config\jenkins\jenkins_home】，因为我想以绝对路径挂载Jenkins（可忽略）
+
+
+
+docker run -u root  -d  -p 8080:8080 -p 50000:50000   -v /etc/localtime:/etc/localtime:ro     -v /usr/bin/docker:/usr/bin/docker   -v /run/docker.sock:/var/run/docker.sock   -v D:\lp\gitcode\my_private_repo\docker_config\jenkins\jenkins_home:/var/jenkins_home   --name=Jenkins002   jenkinsci/blueocean

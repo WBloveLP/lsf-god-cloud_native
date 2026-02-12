@@ -1,0 +1,174 @@
+//写流水线的脚本（声明式、脚本式）
+pipeline{
+//全部的CICD流程都需要在这里定义
+//是Groovy语法
+
+    // 任何一个jenkins实例（代理）可用就可以执行【jenkins也可以是一个集群】
+    // agent none  //以后所有stage都必须指定自己的
+    agent any
+
+    //定义一些环境信息
+    environment {
+      hello = "123456"
+      world = "456789"
+      WS = "${WORKSPACE}"
+    }
+
+    // 定义流水线的加工流程   stages：阶段
+    // 在这块，单引号用来写常量，双引号写变量
+    stages {
+        //流水线的所有阶段
+        stage('环境检查'){
+            steps {
+               sh 'printenv'
+               echo "正在检测基本信息"
+               sh 'java -version'
+               sh 'git --version'
+               sh 'docker version'
+               sh 'pwd && ls -alh'
+               sh "echo $hello"
+               //未来，凡是需要取变量值的时候，都用双引号
+               sh 'echo ${world}'
+            }
+        }
+
+        //1、编译 "abc"
+        stage('maven编译'){
+            //jenkins不配置任何环境的情况下， 仅使用docker 兼容所有场景
+            agent {
+                docker {
+                    image 'maven:3-alpine'
+                    args '-v /var/maven3/.m2:/root/.m2'
+
+//                     args '-v /var/jenkins_home/appconfig/maven/.m2:/root/.m2'
+//                     args  '-v /a/settings.xml:/app/settings.xml'
+                    //docker run -v /a/settings.xml:/app/settings.xml
+                 }
+            }
+            steps {
+               //git下载来的代码目录下
+               sh 'pwd && ls -alh'
+               sh 'mvn -v'
+               //打包，jar.。默认是从maven中央仓库下载。 jenkins目录+容器目录；-s指定容器内位置
+               //只要jenkins迁移，不会对我们产生任何影响
+               //该阶段（stage）的默认WORKSPACE就是xxx@2
+               sh "echo 默认的工作目录：${WORKSPACE}"
+//                =============================================
+//                错误    每一行指令都是基于当前环境信息。和上下指令无关
+//                sh 'cd ${WS}'
+//                mvn clean package
+//                =============================================
+
+
+               sh 'cd ${WS} && mvn clean package -s "/var/jenkins_home/maven3/settings.xml"  -Dmaven.test.skip=true'
+               //jar包推送给maven repo ，nexus
+               //如何让他适用阿里云镜像源
+
+            }
+        }
+
+        //2、测试，每一个 stage的开始，都会重置到默认的WORKSPACE位置
+        stage('测试'){
+            steps {
+                sh 'pwd && ls -alh'
+                echo "测试..."
+            }
+        }
+
+        //3、打包
+        stage('生成镜像'){
+            steps {
+                echo "打包..."
+                //检查Jenkins的docker命令是否能运行
+                sh 'docker version'
+                sh 'pwd && ls -alh'
+                sh 'docker build -t java-devops-demo .'
+            }
+        }
+
+        //4、部署
+        stage('部署'){
+            steps {
+                echo "部署..."
+                sh 'docker rm -f java-devops-demo-dev'
+//                 sh 'docker rmi  java-devops-demo'
+                sh 'docker run -d -p 8888:8081 --name java-devops-demo-dev java-devops-demo'
+            }
+        }
+
+
+/*
+POP3/SMTP 设置方法
+    用户名/帐户： 2975064528@qq.com
+    密码： obccnpvynhatdhed
+    电子邮件地址： 你的QQ邮箱的完整邮件地址
+    发送邮件服务器： smtp.qq.com，使用SSL，端口号465
+*/
+
+        //5、推送报告
+        stage("发送报告"){
+            steps {
+                echo '准备发送报告'
+                mail body: '''<!DOCTYPE html>
+                <html>
+                <head>
+                <meta charset="UTF-8">
+                <title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>
+                </head>
+
+                <body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"
+                    offset="0">
+                    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">
+                <h3>本邮件由系统自动发出，请勿回复！</h3>
+                        <tr>
+                           <br/>
+                            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br>
+                            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>
+                        </tr>
+                        <tr>
+                            <td><br />
+                            <b><font color="#0B610B">构建信息</font></b>
+                            <hr size="2" width="100%" align="center" /></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <ul>
+                                    <li>项目名称 ： ${PROJECT_NAME}</li>
+                                    <li>构建编号 ： 第${BUILD_NUMBER}次构建</li>
+                                    <li>触发原因： ${CAUSE}</li>
+                                    <li>构建状态： ${BUILD_STATUS}</li>
+                                    <li>构建日志： <a href="${BUILD_URL}console">${BUILD_URL}console</a></li>
+                                    <li>构建  Url ： <a href="${BUILD_URL}">${BUILD_URL}</a></li>
+                                    <li>工作目录 ： <a href="${PROJECT_URL}ws">${PROJECT_URL}ws</a></li>
+                                    <li>项目  Url ： <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>
+                                </ul>
+
+
+                <h4><font color="#0B610B">最近提交</font></h4>
+                <ul>
+                <hr size="2" width="100%" />
+                ${CHANGES_SINCE_LAST_SUCCESS, reverse=true, format="%c", changesFormat="<li>%d [%a] %m</li>"}
+                </ul>
+                详细提交: <a href="${PROJECT_URL}changes">${PROJECT_URL}changes</a><br/>
+
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>''', subject: '${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志', to: 'lpruoyu@gmail.com'
+            }
+//             后置处理
+            post {
+              failure {
+                echo "这个阶段 完蛋了.... $currentBuild.result"
+              }
+              success {
+                echo "这个阶段 成了.... $currentBuild.result"
+              }
+            }
+        }
+
+    }
+
+
+}

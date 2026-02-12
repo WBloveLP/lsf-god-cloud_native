@@ -1,0 +1,28 @@
+FROM alpine
+
+
+# ADD:把上下文Context指定的内容添加到镜像中
+# 如果是远程文件，自动下载；
+# 如果是压缩包，自动解压；
+
+
+# ADD:如果是远程文件，自动下载；
+# 把当前内容复制到这个 alpine小系统里面
+ADD https://download.redis.io/releases/redis-6.2.1.tar.gz  /dest/ 
+#-----------------------------------------------------
+# RUN指令上下并没有上下文关系；
+# RUN cd /dest
+# 当前还是列举的根目录
+# RUN ls -l
+# 要想进入dest目录并查看dest目录下的文件，需要这样写：
+RUN cd /dest && ls -l
+#-----------------------------------------------------
+
+
+# ADD:如果是压缩包，自动解压；
+# 本地linux系统把内容文件添加进去  【宿主机   镜像内】
+# docker build --no-cache -t demo:test  -f Dockerfile .【. ：上下文的文件路径】   .代表上下文环境也就是当前Dockerfile所在目录
+# 压缩包位置放在：/root/dockerfiles/ ====> docker build --no-cache -t demo:test  -f Dockerfile /root/dockerfiles/
+ADD *.tar.gz   /app/
+RUN cd /app && ls -l
+

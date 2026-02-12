@@ -1,0 +1,77 @@
+容器化
+
+常用 Docker 容器
+
+任何规模的应用及依赖均可容器化（甚至包括运行在模拟器上的 PDP-11 代码）
+
+逐步将适合的应用拆分为微服务，未来功能也以微服务方式编写
+
+CI/CD
+
+建立持续集成/持续部署流程，实现代码变更自动构建、测试、部署到预发布环境，最终可能到生产环境
+
+设置自动发布、回滚和测试
+
+Argo 是一组基于 GitOps 范式的 Kubernetes 原生工具，支持持续与渐进式交付、MLOps
+
+编排与应用定义
+
+Kubernetes 是市场领先的编排解决方案
+
+应选择“认证 Kubernetes 发行版、托管平台或安装工具”
+
+Helm Chart 可帮助定义、安装和升级复杂的 Kubernetes 应用
+
+可观测性与分析
+
+选择监控、日志、追踪方案
+
+可考虑 CNCF 项目：Prometheus（监控）、Fluentd（日志）、Jaeger（追踪）
+
+追踪应选择兼容 OpenTracing 的实现，如 Jaeger
+
+服务代理、发现与网格
+
+CoreDNS 是快速灵活的服务发现工具
+
+Envoy 和 Linkerd 支持服务网格架构
+
+提供健康检查、路由和负载均衡
+
+网络、策略与安全
+
+使用 CNI 兼容的网络插件（如 Calico、Flannel、Weave Net）以实现灵活网络
+
+Open Policy Agent（OPA）是通用策略引擎，用于授权、准入控制、数据过滤等
+
+Falco 是云原生异常检测引擎
+
+分布式数据库与存储
+
+若需更高弹性和可扩展性，Vitess 可用于大规模分片运行 MySQL
+
+Rook 是存储编排器，将多种存储方案集成到 Kubernetes
+
+etcd 作为 Kubernetes 的“大脑”，提供可靠的集群数据存储
+
+TiKV 是用 Rust 编写的高性能分布式事务键值存储
+
+流式处理与消息传递
+
+若需比 JSON/REST 更高性能，可考虑 gRPC 或 NATS
+
+gRPC 是通用 RPC 框架
+
+NATS 是多模式消息系统，支持请求/响应、发布/订阅、负载均衡队列
+
+CloudEvents 是描述事件数据的通用规范
+
+容器镜像仓库与运行时
+
+Harbor 是支持存储、签名、扫描的镜像仓库
+
+可使用符合 OCI 标准的容器运行时，如 containerd 或 CRI-O
+
+软件分发
+
+若需安全软件分发，可评估 Notary（The Update Framework 的实现）

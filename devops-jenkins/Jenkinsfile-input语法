@@ -1,0 +1,51 @@
+pipeline{
+    agent any
+
+    environment {
+      WS = "${WORKSPACE}"
+    }
+
+    stages {
+         stage('推送镜像'){
+
+//https://www.jenkins.io/doc/book/pipeline/syntax/#input
+//          https://www.jenkins.io/doc/book/pipeline/syntax/#stage
+             input {
+                 message "需要推送远程镜像吗?"
+                 ok "需要"
+                 parameters {
+                     string(name: 'APP_VER', defaultValue: 'v1.0', description: '输入版本号')
+                     choice choices: ['bj-01', 'sh-02', 'wuhan-01', 'other'], description: '部署到哪个区', name: 'DEPLOY_WHERE'
+                 }
+             }
+
+             steps {
+                echo "$APP_VER"
+
+                script {
+                   //groovy
+                   def  where = "${DEPLOY_WHERE}"
+
+                   if (where == "bj-01"){
+                        sh "echo 我帮你部署到 bj-01 区了"
+                   }else if(where == "sh-02"){
+                        sh "echo 我帮你部署到 sh-02 区了"
+                   }else if(where == "wuhan-01"){
+                        sh "echo 我帮你部署到 wuhan-01 区了"
+                   }else{
+                        sh "echo 没人要的，我帮你部署到 其他 区了"
+                   }
+                }
+             }
+
+            post {
+                  success {
+                    echo "部署成功！"
+                    echo '准备发送报告'
+                    mail body: "项目已上线！版本号：${APP_VER}，部署到该区：${DEPLOY_WHERE}", subject: '666', to: 'lpruoyu@gmail.com'
+                  }
+            }
+         }
+    }
+
+}

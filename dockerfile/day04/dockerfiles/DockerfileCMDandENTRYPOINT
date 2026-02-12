@@ -1,0 +1,36 @@
+FROM alpine
+
+
+
+# ENTRYPOINT: 入口（真正的门）
+# ENTRYPOINT不能被修改
+# ENTRYPOINT ping atguigu.com
+
+# CMD：命令（进门的时候带口令）
+# CMD 可以被修改【docker run 时带参数】
+# CMD ping baidu.com
+
+
+
+
+# 最终的用法: CMD是给ENTRYPOINT提供参数的
+# docker run 可以携带参数覆盖CMD :  docker run demo:test jd.com
+CMD ["baidu.com"]
+ENTRYPOINT ["ping"]
+
+
+# 总结：不变的写ENTRYPOINT；变化的写CMD
+# 这两个合在一起不能是错误的命令
+
+
+#----------------------------------------------
+# 多个CMD或者ENTRYPOINT只有最后一个生效
+# CMD ping 666.com
+# CMD ping baidu.com
+# 或
+# ENTRYPOINT ping 666.com
+# ENTRYPOINT ping baidu.com
+
+
+
+#  docker build --no-cache -t demo:test -f .\DockerfileCMDandENTRYPOINT .

@@ -1,0 +1,27 @@
+FROM alpine
+
+
+
+# ENV url=jd.com
+# CMD ["ping","baidu.com"]
+# CMD ["ping","${url}"] # 取不出变量
+# CMD ping ${url}
+# 官方都是建议使用这种方式：
+# CMD ["/bin/sh","-c","ping ${url}"]
+
+
+
+# CMD ["useradd","-u","1000","-g","2000"]
+
+
+
+
+# 官方推荐的写法,变化的写 CMD，不变的写 ENTRYPOINT；CMD是提供参数给ENTRYPOINT；未来ENTRYPOINT是容器启动的唯一入口
+# ENTRYPOINT CMD 这两个合在一起不能是错误的命令
+
+
+
+# docker run imageName  cmd1  一旦传递了cmd1，CMD指定的所有参数都会被覆盖
+# 自定义参数的情况下一定要传完
+CMD [ "5","baidu.com" ]
+ENTRYPOINT [ "ping","-c" ]

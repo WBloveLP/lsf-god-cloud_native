@@ -1,0 +1,35 @@
+# 多阶段最大的好处就是之前的阶段都跟我打包的镜像没关系，最后一个阶段，不会有前面阶段的那些层！因此镜像就会很小
+
+
+FROM alpine
+
+# RUN  安装maven
+
+# RUN mvn clean package
+
+# COPY  xxx.jar /app.jar
+
+# ENTRYPOINT [ "java","-jar","app.jar" ]
+
+
+#SpringBoot应用 java -jar xxx.jar
+
+# 运行Java最少环境：jre环境；
+# 不嫌麻烦你也可以自己打包,那就不需要上面的maven环境了
+
+
+# 多阶段构建：
+# 一个镜像分为多个大的阶段进行构建，最终的构建结果是最后一个阶段的结果，好处就是能够缩小镜像
+
+
+
+# 多阶段构建
+# FROM alpine AS build
+# xxxxxx
+
+# 上面的FROM是辅助阶段
+# FROM  jre
+
+# COPY  --from=build xxx  xxx
+
+# ENTRYPOINT [ "executable" ]

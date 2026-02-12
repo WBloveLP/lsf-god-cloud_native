@@ -1,0 +1,20 @@
+FROM alpine
+USER 2000:2000
+COPY --chown=2000:2000   *.txt   /b.txt
+# COPY *.txt   /b.txt
+RUN ls -l /
+RUN  echo liupeng999 >> /b.txt
+
+# 如何测试：
+#-----------
+# 以root身份创建一个.txt文件
+# $ ls -l   #root才能操作该文件
+# -rw-r--r-- 1 root    root      7 Jan 23 14:57 xxx.txt
+#-----------
+
+# COPY不加--chown
+# COPY加--chown
+# 看看能不能写进入
+# 可以进入容器内部看看文件的所有者是谁
+
+

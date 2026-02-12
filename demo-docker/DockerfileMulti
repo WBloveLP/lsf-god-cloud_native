@@ -1,0 +1,42 @@
+# 多阶段构建有个好处就是：缩小镜像
+
+# https://hub.docker.com/_/maven/tags?name=jdk-17
+FROM  maven:3.8.5-openjdk-17-slim AS buildapp
+#FROM  maven:3.8.5-openjdk-17-slim
+
+WORKDIR /app
+# COPY 是从宿主机上复制到镜像内部
+COPY pom.xml .
+COPY src ./src
+
+#CMD sleep 10000000
+#
+RUN mvn clean package
+
+# /app 下面有 target
+#RUN pwd && ls -l
+
+#镜像内部拷贝
+RUN cp /app/target/*.jar  /app.jar
+#RUN ls -l
+### 以上第一阶段结束，我们得到了一个 app.jar
+
+
+## Java想要运行只要一个JRE就够了
+FROM  openjdk:26-ea-17-trixie
+
+# 修改时区
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' >/etc/timezone
+LABEL maintainer="lpruoyu@gmail.com"
+# 把上一个阶段的东西复制过来
+COPY --from=buildapp /app.jar  /app.jar
+
+# docker run -e JAVA_OPTS="-Xmx512m -Xms33 xxx" -e PARAMS="--spring.profiles=dev --server.port=8080 xxx"
+# 启动java的命令
+ENV JAVA_OPTS=""
+ENV PARAMS=""
+
+# EXPOSE 主要是起文档的作用
+#EXPOSE 8080
+
+ENTRYPOINT [ "sh", "-c", "java -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /app.jar $PARAMS" ]

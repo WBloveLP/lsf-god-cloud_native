@@ -1,0 +1,42 @@
+#ENV:构建期+运行期都可以生效；但是只能在运行期进行修改
+
+
+# env的坑
+FROM alpine
+
+# ARG msg=hello
+
+# # ENV肯定能引用ARG
+# ENV name=${msg}
+
+# RUN echo ${name}
+
+# RUN echo ${msg}
+
+#-----------------------------------
+# ENV只能运行期改掉
+ENV msg1=hello
+ENV msg2=$msg1
+# 以上构建期间就已经确定好值了；
+#-----------------------------------
+
+RUN echo ${msg1}
+RUN echo ${msg2}
+
+# ENV持久化问题。
+# msg1=msg2没问题；如果我运行期修改了msg1的值，请问msg1、msg2输出什么？
+# docker run -e msg1=666  myalpine:v111  结果输出： 666   hello; 
+# 原因：
+# 为什么运行期间能用ENV定义的所有值，一定是ENV存在某个地方
+# docker build的时候，env环境的信息会固化，直接在镜像配置里面就已经写死了，msg1=hello，msg2=hello
+# -e 只能修改当前env本身
+
+
+# docker run -e msg1=666 -e msg2=777  myalpine:v111
+# 输出 666 777
+
+CMD ["/bin/sh","-c","echo ${msg1};echo ${msg2};"]
+
+
+
+

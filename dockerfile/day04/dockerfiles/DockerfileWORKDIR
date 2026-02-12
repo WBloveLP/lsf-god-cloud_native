@@ -1,0 +1,30 @@
+FROM alpine
+
+#复制到当前目录下
+# COPY *.txt   ./
+# 没指定WORKDIR默认在/目录
+# RUN pwd && ls -l
+
+# WORKDIR为以下所有的命令运行指定了基础目录
+WORKDIR /app
+
+# WORKDIR abc
+# 结果：/app/abc
+# 多个WORKDIR可以嵌套
+# RUN pwd && ls -l
+
+
+# 可以使用WORKDIR为进入容器指定目录
+# docker exec -it mydemo1 /bin/sh
+
+##比如我们自己的nginx镜像可以做成这样，来方便修改
+#WORKDIR /usr/share/nginx/html
+
+
+#复制到当前目录下
+COPY *.txt   ./
+
+# RUN  pwd && ls -l
+
+CMD ping baidu.com
+

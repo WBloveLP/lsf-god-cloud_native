@@ -1,0 +1,69 @@
+编写yaml的黑科技：
+
+1、
+kubectl run my-nginx666 --image=nginx
+kubectl get pod my-nginx666 -oyaml#集群中挑一个同类资源，获取出他的yaml（不要status）。
+
+2、
+kubectl run my-tomcat --image=tomcat --dry-run -oyaml#干跑一遍 
+
+3、
+kubectl explain pod
+kubectl explain pod.metadata
+
+
+写完yaml， kubectl apply -f 即可
+
+
+
+
+==================================================================================
+
+
+给VsCode安装插件：YAML 和 Kubernetes Templates
+
+
+==================================================================================
+
+
+不会写？看不懂？
+
+
+例子：
+[root@k8s-master lpruoyu]# kubectl explain pod.spec.containers.resources
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: resources <Object>
+
+DESCRIPTION:
+     Compute Resources required by this container. Cannot be updated. More info:
+     https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+     ResourceRequirements describes the compute resource requirements.
+
+FIELDS:
+   limits	<map[string]string>
+     Limits describes the maximum amount of compute resources allowed. More
+     info:
+     https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+   requests	<map[string]string>
+     Requests describes the minimum amount of compute resources required. If
+     Requests is omitted for a container, it defaults to Limits if that is
+     explicitly specified, otherwise to an implementation-defined value. More
+     info:
+     https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+
+
+访问链接后，在 https://kubernetes.io 后面加上 /zh-cn【或者/zh】，然后去看即可！当然英语好能看懂更好了。
+
+
+==================================================================================
+
+
+排错命令：
+kubectl logs -f  my-tomcat-test -n default
+kubectl describe pod my-tomcat-test -n default
+

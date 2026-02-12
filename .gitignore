@@ -1,0 +1,19 @@
+*.sock
+# Jar文件
+*.jar
+*.war
+*.ear
+
+# 压缩文件
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# 大文件
+**/target/**
+**/build/**
+**/data/**
+**/node_modules/
+**/.idea/
+**/*.iml

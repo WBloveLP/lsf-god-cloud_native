@@ -1,0 +1,49 @@
+pipeline{
+    agent any
+
+    environment {
+      WS = "${WORKSPACE}"
+    }
+
+    stages {
+        stage('环境检查'){
+            steps {
+               echo "正在检测基本信息"
+               sh 'printenv'
+               sh 'java -version'
+               sh 'git --version'
+               sh 'docker version'
+               sh 'pwd && ls -alh'
+            }
+        }
+
+        stage('maven编译'){
+            agent {
+                docker {
+                    image 'maven:3-alpine'
+                    // 宿主机  ===> image
+                    args '-v /var/maven3/.m2:/root/.m2'
+                 }
+            }
+            steps {
+               sh 'pwd'
+               sh 'mvn -v'
+               // -s jenkins能访问的地方
+               sh 'cd ${WS} && mvn clean package -s "/var/jenkins_home/maven3/settings.xml"  -Dmaven.test.skip=true'
+            }
+        }
+
+        stage('生成镜像'){
+            steps {
+                sh 'pwd && ls -alh'
+
+                sh 'docker rm -f $(docker ps -aq --filter ancestor=java-devops-demo:latest)'
+                sh 'docker rmi java-devops-demo:latest'
+
+                sh 'docker build -t java-devops-demo .'
+//                 sh 'docker run --rm -d -P java-devops-demo'
+                sh 'docker run --rm -d -p 8081:8081 java-devops-demo'
+            }
+        }
+    }
+}

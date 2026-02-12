@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "testk8stemplates"
+  namespace: default
+  labels:
+    app: "testk8stemplates"
+spec:
+  containers:
+  - name: testk8stemplates
+    image: "debian-slim:latest"
+    # kubectl explain pod.spec.containers.resources
+    resources:
+      limits:
+        cpu: 200m
+        memory: 500Mi
+      requests:
+        # 1核CPU == 1000m
+        cpu: 100m
+        memory: 200Mi
+    env:
+    - name: DB_HOST
+      valueFrom:
+        configMapKeyRef:
+          name: MYAPP
+          key: DB_HOST
+    ports:
+    - containerPort:  80
+      name:  http
+    volumeMounts:
+    - name: localtime
+      mountPath: /etc/localtime
+  volumes:
+    - name: localtime
+      hostPath:
+        path: /usr/share/zoneinfo/Asia/Shanghai
+  restartPolicy: Always
