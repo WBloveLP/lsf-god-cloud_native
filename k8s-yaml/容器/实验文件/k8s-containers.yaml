@@ -9,8 +9,8 @@ metadata:
 spec:
   imagePullSecrets:  #镜像的下载秘钥,公有仓是默认的
     - name: my-aliyun   # 是kubectl create secrete 搞来的 registry.cn-hangzhou.aliyuncs.com
-    - name: qingcloud
- ##   私仓从 registry.cn-hangzhou.aliyuncs.com直接区分
+    - name: qingcloud # 可以有多个私有仓库
+ ##   仓库从  【registry.cn-hangzhou.aliyuncs.com】部分  区分
   containers:
     - image: registry.cn-hangzhou.aliyuncs.com/lfy/java-devops-demo:v1.0
       name: my-container-01

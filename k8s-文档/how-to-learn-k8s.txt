@@ -26,7 +26,19 @@ kubectl explain pod.metadata
 ==================================================================================
 
 
-不会写？看不懂？
+
+
+命令行直接敲kubectl，就可以看到kubernetes的所有常用命令。其中会看到有一个explain；
+然后命令行直接敲kubectl explain，会有这么一行提示：Use "kubectl api-resources" for a complete list of supported resources.
+命令行敲kubectl api-resources，可以看到k8s的所有资源。
+
+
+
+
+假如你想写一个Pod，但是，不会写？看不懂？
+kubectl explain pod
+kubectl explain pod.spec
+...
 
 
 例子：

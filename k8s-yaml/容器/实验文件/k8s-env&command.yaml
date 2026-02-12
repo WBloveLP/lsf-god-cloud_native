@@ -1,0 +1,20 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: my-command-test
+  namespace: hello
+spec:  
+  containers:  
+  - image: nginx  # 默认会启动一个nginx容器
+    name: command-test  
+    command:    # 容器的启动命令以k8s这里为准，command直接覆盖容器的默认命令
+      - /bin/sh
+      - -c
+      - "echo $(msg); sleep 3600;"
+    env: # 在k8s中指定env环境变量，Docker的容器能用到
+      - name: msg
+        value: "hello msg" 
+
+# command直接覆盖容器的默认命令，所以该POD不会运行nginx容器
+
+# 比如：一个redis集群中，redis主节点和其它节点的启动命令有可能不一样，就可以使用command
