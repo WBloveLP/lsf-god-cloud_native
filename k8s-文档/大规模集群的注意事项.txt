@@ -1,0 +1,12 @@
+https://kubernetes.io/zh-cn/docs/setup/best-practices/cluster-large/
+
+
+大规模集群的注意事项：
+
+
+ Kubernetes v1.35 单个集群支持的最大节点数为 5,000。 更具体地说，Kubernetes 设计为满足以下所有标准的配置：
+
+每个节点的 Pod 数量不超过 110
+节点数不超过 5,000
+Pod 总数不超过 150,000
+容器总数不超过 300,000
