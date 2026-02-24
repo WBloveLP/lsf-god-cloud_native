@@ -5,22 +5,20 @@ kind: Ingress
 metadata:
   name: ingress-222333
   namespace: default
-  annotations:
-    nginx.ingress.kubernetes.io/limit-rps: 1
 spec:
   defaultBackend: ## 只要未指定的映射路径
     service:
-      name: php-apache
+      name: prs-svc
       port:
         number: 80
   rules:
   - host: it666.com
     http:
       paths:
-      - path: /bbbbb
-        pathType: Prefix
+      - path: /abc # root@dep2-fc5f4447f-f6kk9:/# echo xxx > /usr/share/nginx/html/abc 
+        pathType: Exact
         backend:
           service:
-            name: cluster-service-222
+            name: svc2
             port:
               number: 80
