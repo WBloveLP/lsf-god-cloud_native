@@ -1,0 +1,16 @@
+#kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10  --dry-run=client -oyaml
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: php-apache
+spec:
+  maxReplicas: 10
+  minReplicas: 1
+  scaleTargetRef:  ### 将要扩展的目标引用
+    apiVersion: apps/v1
+    kind: Deployment
+    name: php-apache                  ### CPU使用率与Pod的limit相关  
+  targetCPUUtilizationPercentage: 50  ### cpu使用超过50%就扩容，低于就缩容
+
+#  kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"

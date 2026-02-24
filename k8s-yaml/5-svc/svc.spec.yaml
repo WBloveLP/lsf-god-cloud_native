@@ -1,0 +1,10 @@
+[root@k8s-master lpruoyu]# kubectl explain svc.spec
+
+# https://kubernetes.io/zh-cn/docs/reference/networking/virtual-ips/#session-affinity
+   sessionAffinity	<string> : session亲和【会话保持】，会话不变就尽量不要把流量打到其他服务器
+      Supports "ClientIP" and "None".
+
+   sessionAffinityConfig	<Object>
+   
+   topologyKeys	<[]string> ： 指定拓扑
+

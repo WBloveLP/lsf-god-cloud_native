@@ -1,0 +1,23 @@
+# https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress  ### 代表nginx的一项配置
+metadata:
+  name: hello-ingress
+  namespace: default
+spec:
+  rules:
+  - host: it666.com  ## 指定监听的主机域名    server  it666.com
+    http: ## 指定请求路由规则
+      paths:
+      - path: /  ## pathType: Prefix ==> it666.com/abc
+        pathType: Exact # 精确匹配
+        backend:  ## 指定路由的后台服务的service名
+          service:
+            name: svc1
+            port:
+              number: 80
+
+
+# vi /etc/hosts
+# 192.168.10.138【装了ingress的节点ip】   it666.com

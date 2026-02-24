@@ -1,0 +1,21 @@
+[root@k8s-master lpruoyu]# kubectl explain ingress.spec
+KIND:     Ingress
+VERSION:  networking.k8s.io/v1
+
+RESOURCE: spec <Object>
+
+DESCRIPTION:
+     Spec is the desired state of the Ingress. More info:
+     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+
+     IngressSpec describes the Ingress the user wishes to exist.
+
+FIELDS:
+   defaultBackend	<Object>
+          frontEnd：前端 backEnd: 后端
+   ingressClassName	<string> : 默认的不用管：nginx
+
+   rules	<[]Object> ：定义nginx的转发规则
+
+
+   tls	<[]Object>：定义tls安全连接

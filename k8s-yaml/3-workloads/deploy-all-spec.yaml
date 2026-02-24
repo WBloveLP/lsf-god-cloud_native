@@ -1,0 +1,28 @@
+   # Deployment：
+   # 滚动更新：   10  ==>   2 - 8  4 ，  再杀2生4  ==>   0 - 10
+   # RS1  RS2 RS的多个版本同时存在
+   
+   minReadySeconds: 10  这个Pod10s以后才认为是ready状态，影响多久后杀死旧Pod
+
+   paused	: 暂停更新；默认false ；  当前是否是停止状态
+
+   progressDeadlineSeconds: 600  处理的最终期限，Deployment如果超过了这个指定的处理数就会给集群汇报错误
+
+   replicas	:  Pod 期望的数量（副本数量），是  ReplicaSet  控制器实现的
+
+   revisionHistoryLimit	: 旧副本集保留的数量，也就是可回滚的数量，默认是10
+
+
+   strategy	: 指定新Pod替换旧Pod的策略
+      rollingUpdate	: 指定滚动更新策略（type为RollingUpdate时候）
+           maxSurge	    【最大增量】: 3        一次最多新建几个Pod。 百分比和数字都可以 
+           maxUnavailable【最大不可用量】: 2    最大不可用的Pod数量【集群中，最多两个POD不能用】   
+      type	: Recreate【重新创建】/RollingUpdate（默认）
+
+
+   ###########################  required  ##############################
+
+   selector	 -required-: 指定Deployment要控制的所有的Pod的共同标签
+
+
+   template	 -required-: 编写Pod

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  dep2
+  namespace: default
+  labels:
+    app:  dep2
+spec:
+  selector:
+    matchLabels:
+      app: nginx-pod-2
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app:  nginx-pod-2
+    spec:
+      containers:
+      - name:  nginx
+        image:  nginx
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc2
+  namespace: default
+spec:
+  selector:
+    app: nginx-pod-2
+  type: ClusterIP
+  ports:
+  - name: svc2
+    protocol: TCP
+    port: 80
+    targetPort: 80
+
+# echo 111 > /usr/share/nginx/html/index.html 

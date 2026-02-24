@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  canary-dep-v2
+  # name:  canary-dep-v1
+  namespace: default
+  labels:
+    app:  canary-dep-v2
+    # app:  canary-dep-v1
+spec:
+  selector:
+    matchLabels:
+      app: canary-nginx
+      v: v222
+      # v: v111
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: canary-nginx
+        v: v222
+        # v: v111
+    spec:
+      containers:
+      - name:  nginx
+        image:  nginx
