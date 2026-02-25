@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  cookieuri-dep
+  namespace: default
+  labels:
+    app:  cookieuri-dep
+spec:
+  selector:
+    matchLabels:
+      app: cookieuri-server-c
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app:  cookieuri-server-c
+    spec:
+      containers:
+      - name:  printcookieuri
+        image:  crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com/lpruoyu/cookieanduri:latest
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: cookieuri-svc
+  namespace: default
+spec:
+  selector:
+    app: cookieuri-server-c
+  type: ClusterIP
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8080

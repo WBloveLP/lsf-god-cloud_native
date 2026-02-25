@@ -1,0 +1,22 @@
+### 利用每次请求携带同样的cookie，来标识是否是同一个会话
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress 
+metadata:
+  name: session-test
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    # nginx.ingress.kubernetes.io/session-cookie-name: "mywebsite-session" #不指定就是使用默认名字的Cookie: INGRESSCOOKIE
+spec:
+  rules:
+  - host: lpwb.com # 192.168.10.138【装有ingress的虚拟机IP】 lpwb.com
+    http:
+      paths:
+      - path: /  ### 如果以前这个域名下的这个路径相同的功能有配置过，以最后一次为准生效
+        pathType: Prefix
+        backend: 
+          service:
+            name: cookieuri-svc
+            port:
+              number: 80

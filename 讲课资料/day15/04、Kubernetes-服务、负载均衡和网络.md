@@ -1292,15 +1292,15 @@ https://kubernetes.github.io/ingress-nginx/user-guide/tls/
 生成证书：（也可以去青云申请免费证书进行配置）
 
 ```sh
-$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${KEY_FILE:tls.key} -out ${CERT_FILE:tls.cert} -subj "/CN=${HOST:itdachang.com}/O=${HOST:itdachang.com}"
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${KEY_FILE:tls.key} -out ${CERT_FILE:tls.cert} -subj "/CN=${HOST:itdachang.com}/O=${HOST:itdachang.com}"
 
 kubectl create secret tls ${CERT_NAME:itdachang-tls} --key ${KEY_FILE:tls.key} --cert ${CERT_FILE:tls.cert}
 
 
 ## 示例命令如下
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.cert -subj "/CN=it666.com/O=it666.com"
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.cert -subj "/CN=lpwb.com/O=lpwb.com"
 
-kubectl create secret tls it666-tls --key tls.key --cert tls.cert
+kubectl create secret tls lpwb-tls --key tls.key --cert tls.cert
 ```
 
 
