@@ -4,9 +4,16 @@
     </h1>    
 </center>
 
-# 一、总览
+# 总览
 
-![1620441979589](assets/1620441979589.png)
+```sh
+kubectl explain pod.spec.volumes
+```
+
+![20260226_161251](assets/20260226_161251.png)
+
+
+--------------------------
 
 ![1620633822448](assets/1620633822448.png)
 
@@ -39,20 +46,20 @@
 
 
 
-# 二、配置
+# 一、配置
 
 配置最佳实战: 
 
-- 云原生 应用12要素 中，提出了配置分离。https://www.kdocs.cn/view/l/skIUQnbIc6cJ
+- 云原生 应用12要素 中，提出了配置分离。https://12factor.net/zh_cn/config
 - 在推送到集群之前，配置文件应存储在**版本控制**中。 这允许您在必要时快速回滚配置更改。 它还有助于集群重新创建和恢复。
 - **使用 YAML 而不是 JSON 编写配置文件**。虽然这些格式几乎可以在所有场景中互换使用，但 YAML 往往更加用户友好。
-- 建议相关对象分组到一个文件。比如 [guestbook-all-in-one.yaml](https://github.com/kubernetes/examples/tree/master/guestbook/all-in-one/guestbook-all-in-one.yaml) 
+- 建议相关对象分组到一个文件。比如 [guestbook-all-in-one.yaml](https://github.com/kubernetes/examples/blob/master/web/guestbook/all-in-one/guestbook-all-in-one.yaml) 
 - 除非必要，否则不指定默认值：简单的最小配置会降低错误的可能性。
 - 将对象描述放在注释中，以便更好地进行内省。
 
 
 
-## 1、Secret
+## Secret
 
 - `Secret` 对象类型用来**保存敏感信息**，例如密码、OAuth 令牌和 SSH 密钥。 将这些信息放在 `secret` 中比放在 [Pod](https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/) 的定义或者 [容器镜像](https://kubernetes.io/zh/docs/reference/glossary/?all=true#term-image) 中来说更加安全和灵活。
 - `Secret` 是一种包含少量敏感信息例如密码、令牌或密钥的对象。用户可以创建 Secret，同时系统也创建了一些 Secret。
@@ -85,9 +92,9 @@ Secret 对象的名称必须是合法的 [DNS 子域名](https://kubernetes.io/z
 
 ### 3、实验
 
-#### 1、创建Secret
+#### 1)、创建Secret
 
-##### 1、generic 类型
+
 
 ```yaml
 ## 命令行
@@ -96,13 +103,17 @@ kubectl create secret generic dev-db-secret \
   --from-literal=username=devuser \
   --from-literal=password='S!B\*d$zDsb='
   
-## 参照以下yaml
+#干跑一遍 
+kubectl create secret generic dev-db-secret \
+  --from-literal=username=devuser \
+  --from-literal=password='S!B\*d$zDsb=' --dry-run=client -oyaml
+#就会获得以下yaml【自己编写secret的yaml，也得base64编码后写】
 apiVersion: v1
 kind: Secret
 metadata:
   name: dev-db-secret  
 data:
-  password: UyFCXCpkJHpEc2I9  ## base64编码了一下
+  password: UyFCXCpkJHpEc2I9  ## 只是base64编码了一下（不会导致乱码），并没有加密
   username: ZGV2dXNlcg==
 
 
@@ -113,9 +124,6 @@ echo -n '1f2d1e2e67df' > ./password.txt
 kubectl create secret generic db-user-pass \
   --from-file=./username.txt \
   --from-file=./password.txt
-
-
-
 # 默认密钥名称是文件名。 你可以选择使用 --from-file=[key=]source 来设置密钥名称。如下
 kubectl create secret generic db-user-pass-02 \
   --from-file=un=./username.txt \
@@ -133,10 +141,11 @@ dev-db-secret yaml内容如下
 
 
 
-- 获取Secret内容
+获取Secret内容
 
 ```sh
-kubectl get secret dev-db-secret -o jsonpath='{.data}'
+kubectl get secret dev-db-secret -oyaml
+kubectl get secret lpwb-tls  -o yaml
 ```
 
 
@@ -145,9 +154,9 @@ kubectl get secret dev-db-secret -o jsonpath='{.data}'
 
 
 
-#### 2、使用Secret
+#### 2)、使用Secret
 
-##### 1、环境变量引用
+##### a、环境变量引用
 
 ```yaml
 apiVersion: v1
@@ -178,7 +187,7 @@ spec:
 
 
 
-##### 2、卷挂载
+##### b、卷挂载
 
 ```yaml
 apiVersion: v1
@@ -205,8 +214,9 @@ spec:
 
 
 
-## 2、ConfigMap
+## ConfigMap
 
+- 跟secret用法差不多；不过ConfigMap 保存的是明文，不会用base64编码
 - ConfigMap 来将你的配置数据和应用程序代码分开。
 - ConfigMap 是一种 API 对象，用来将非机密性的数据保存到键值对中。使用时， [Pods](https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/) 可以将其用作环境变量、命令行参数或者存储卷中的配置文件。
 
@@ -283,27 +293,6 @@ spec:
 
 
 
-### 1、使用挂载ConfigMap
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: mypod
-spec:
-  containers:
-  - name: mypod
-    image: redis
-    volumeMounts:
-    - name: foo
-      mountPath: "/etc/foo"
-      readOnly: true
-  volumes:
-  - name: foo
-    configMap:
-      name: myconfigmap
-```
-
 **ConfigMap的修改，可以触发挂载文件的自动更新**
 
 
@@ -312,7 +301,7 @@ spec:
 
 
 
-# 三、临时存储
+# 二、临时存储
 
 ## 1、几种临时存储
 
@@ -453,7 +442,7 @@ spec:
 
 
 
-#  四、持久化
+#  三、持久化
 
 ## 1、VOLUME
 
