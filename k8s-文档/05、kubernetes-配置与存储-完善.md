@@ -306,8 +306,6 @@ spec:
 
 # 二、临时存储
 
-## 1、几种临时存储
-
 Kubernetes 为了不同的目的，支持几种不同类型的临时卷：
 
 - [emptyDir](https://kubernetes.io/zh/docs/concepts/storage/volumes/#emptydir)： Pod 启动时为空，存储空间来自本地的 kubelet 根目录（通常是根磁盘）或内存
@@ -319,7 +317,7 @@ Kubernetes 为了不同的目的，支持几种不同类型的临时卷：
 
 
 
-## 2、emptyDir
+## 1、emptyDir
 
 - 当 Pod 分派到某个 Node 上时，`emptyDir` 卷会被创建
 - 在 Pod 在该节点上运行期间，卷一直存在。
@@ -377,7 +375,7 @@ spec:
 ```
 
 
-## 3、hostPath
+## 2、hostPath
 
 hostPath：当前主机路径
 
@@ -442,9 +440,7 @@ spec:
 
 
 
-> 典型应用
->
-> 解决容器时间问题
+典型应用：解决容器时间问题
 
 ```yaml
 apiVersion: v1
@@ -499,7 +495,30 @@ spec:
 
 无论是secret还是ConfigMap，使用挂载的方式会热更新，但是subPath（子路径）挂载除外
 
-
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "pod-time"
+  namespace: default
+  labels:
+    app: "pod-time"
+spec:
+  containers:
+  - name: pod-time
+    image: "busybox"
+    command: ["sleep","60000"]
+    volumeMounts: ## 描述容器想把自己的哪个路径进行挂载
+    - name: localtime
+      mountPath: /etc/localtime  ## 2 挂到容器的这个位置
+      # mountPath: /etc
+      # subPath: localtime 
+  volumes:  ## 描述每个volumeMounts到底该怎么挂载，在哪里挂载
+    - name: localtime
+      hostPath:  ## 1 主机的这个文件  
+        path: /usr/share/zoneinfo/Asia/Shanghai
+        # type: Directory  ### 到底是什么。文件/文件夹 .....
+```
 
 ### 3、使用NFS
 
