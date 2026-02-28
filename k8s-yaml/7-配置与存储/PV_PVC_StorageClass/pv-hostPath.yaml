@@ -1,0 +1,19 @@
+# https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-persistent-volume-storage/
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-volume-100m
+  labels:
+    type: local
+spec:
+  storageClassName: my-hostpath-storage #对pv进行分组
+  capacity:
+    storage: 100m
+  accessModes:
+    - ReadWriteOnce 
+  hostPath:  
+    path: /nfs/data
+    # type: 
+
+# kubectl get pv

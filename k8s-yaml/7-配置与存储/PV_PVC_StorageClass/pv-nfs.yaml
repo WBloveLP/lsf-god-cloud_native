@@ -1,3 +1,5 @@
+# https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-persistent-volume-storage/
+
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -11,5 +13,5 @@ spec:
   accessModes:
     - ReadWriteOnce 
   nfs:  ## 使用nfs存储系统
-    server: 10.170.11.8  ## 没type
-    path: /nfs/data/haha  ### abc文件夹提前创建
+    server: 192.168.10.137  
+    path: /nfs/data/haha  ### haha文件夹提前创建【由运维创建】

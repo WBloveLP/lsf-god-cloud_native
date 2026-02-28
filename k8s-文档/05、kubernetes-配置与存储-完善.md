@@ -48,6 +48,9 @@ kubectl explain pod.spec.volumes
 
 # 一、配置
 
+
+>无论是secret还是ConfigMap，使用挂载的方式会热更新，但是subPath（子路径）挂载除外
+
 配置最佳实战: 
 
 - 云原生 应用12要素 中，提出了配置分离。https://12factor.net/zh_cn/config
@@ -59,7 +62,7 @@ kubectl explain pod.spec.volumes
 
 
 
-## Secret
+## 配置-Secret
 
 - `Secret` 对象类型用来**保存敏感信息**，例如密码、OAuth 令牌和 SSH 密钥。 将这些信息放在 `secret` 中比放在 [Pod](https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/) 的定义或者 [容器镜像](https://kubernetes.io/zh/docs/reference/glossary/?all=true#term-image) 中来说更加安全和灵活。
 - `Secret` 是一种包含少量敏感信息例如密码、令牌或密钥的对象。用户可以创建 Secret，同时系统也创建了一些 Secret。
@@ -208,13 +211,13 @@ spec:
       secretName: mysecret
 ```
 
-挂载方式的secret 在secret变化的时候会自动更新**（子路径引用除外）**
+挂载方式的secret 在secret变化的时候会自动更新**（子路径除外）**
 
 
 
 
 
-## ConfigMap
+## 配置-ConfigMap
 
 - 跟secret用法差不多；不过ConfigMap 保存的是明文，不会用base64编码
 - ConfigMap 来将你的配置数据和应用程序代码分开。
@@ -322,7 +325,8 @@ Kubernetes 为了不同的目的，支持几种不同类型的临时卷：
 - 在 Pod 在该节点上运行期间，卷一直存在。
 - 卷最初是空的。 
 - 尽管 Pod 中的容器挂载 `emptyDir` 卷的路径可能相同也可能不同，这些容器都可以读写 `emptyDir` 卷中相同的文件。 
-- 当 Pod 因为某些原因被从节点上删除时，`emptyDir` 卷中的数据也会被永久删除。
+- 容器崩溃并不会导致 Pod 被从节点上移除，因此容器崩溃期间 emptyDir 卷中的数据是安全的。
+- 当 Pod 因为某些原因被从节点上删除时，`emptyDir` 卷中的数据也会被永久删除。【只要是新POD，数据就没了】
 - 存储空间来自本地的 kubelet 根目录（通常是根磁盘）或内存
 
 ```yaml
@@ -351,9 +355,35 @@ spec:
         mountPath: /app
 ```
 
+emptyDir 内存配置示例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pd
+spec:
+  containers:
+  - image: registry.k8s.io/test-webserver
+    name: test-container
+    volumeMounts:
+    - mountPath: /cache
+      name: cache-volume
+  volumes:
+  - name: cache-volume
+    emptyDir:
+      sizeLimit: 500Mi
+      medium: Memory
+```
 
 
-## 3、扩展-hostPath
+## 3、hostPath
+
+hostPath：当前主机路径
+
+场景：
+  - jenkins要用到宿主机的docker，来运行宿主机上的Docker命令。
+  - 挂载当前机器节点的时间
 
 https://kubernetes.io/zh/docs/concepts/storage/volumes/#hostpath
 
@@ -454,12 +484,12 @@ spec:
 - 临时卷类型的生命周期与 Pod 相同，但持久卷可以比 Pod 的存活期长
 - 当 Pod 不再存在时，Kubernetes 也会销毁临时卷；
 - Kubernetes 不会销毁 持久卷。
-- 对于给定 Pod 中**任何类型的卷**，在容器重启期间数据都不会丢失。
+- 对于给定 Pod 中**任何类型的卷**，在**容器**重启期间数据都不会丢失。
 - 使用卷时, 在 `.spec.volumes` 字段中设置为 Pod 提供的卷，并在 `.spec.containers[*].volumeMounts` 字段中声明卷在容器中的挂载位置。
 
 
 
-[支持的卷类型](https://kubernetes.io/zh/docs/concepts/storage/volumes/#volume-types)
+支持的卷类型   https://kubernetes.io/zh/docs/concepts/storage/volumes/#volume-types)
 
 
 
@@ -467,23 +497,26 @@ spec:
 
 有时，在单个 Pod 中共享卷以供多方使用是很有用的。 `volumeMounts.subPath` 属性可用于指定所引用的卷内的子路径，而不是其根路径。
 
-
+无论是secret还是ConfigMap，使用挂载的方式会热更新，但是subPath（子路径）挂载除外
 
 
 
 ### 3、使用NFS
 
+>NFS生产环境不太建议使用，可以去购买云服务器厂商的一些NFS升级改造版
+
 #### 1、安装NFS
 
 ```sh
-# 在任意机器
+#在任意机器【充当nfs服务端】
+#服务器端防火墙开放111、662、875、892、2049的 tcp / udp 允许，否则远端客户无法连接。
 yum install -y nfs-utils
 #执行命令 vi /etc/exports，创建 exports 文件，文件内容如下：
+mkdir -p /nfs/data
 echo "/nfs/data/ *(insecure,rw,sync,no_root_squash)" > /etc/exports
 #/nfs/data  172.26.248.0/20(rw,no_root_squash)
 
 # 执行以下命令，启动 nfs 服务;创建共享目录
-mkdir -p /nfs/data
 systemctl enable rpcbind
 systemctl enable nfs-server
 systemctl start rpcbind
@@ -492,8 +525,48 @@ exportfs -r
 #检查配置是否生效
 exportfs
 # 输出结果如下所示
-/nfs/data /nfs/data
+/nfs/data     	<world>
 ```
+
+
+```sh
+#在任意机器【远端（nfs客户端）同步】
+#安装客户端工具
+yum install -y nfs-utils
+
+#执行以下命令检查 nfs 服务器端是否有设置共享目录
+# showmount -e $(nfs服务器的IP)
+showmount -e 192.168.10.137
+# 输出结果如下所示
+Export list for 192.168.10.137
+/nfs/data *
+```
+
+以上命令已经可以使用nfs挂载了
+
+
+```sh
+#执行以下命令挂载 nfs 服务器上的共享目录到本机路径 /root/nfsmount
+# mount -t nfs $(nfs服务器的IP):/root/nfs_root /root/nfsmount
+mkdir -p /root/nfsmount
+#运行这个命令就可以在本机（nfs客户端）修改文件了；也可以备份文件到本机了
+mount -t nfs 192.168.10.137:/nfs/data /root/nfsmount 
+
+#卸载文件夹
+umount -l /root/nfsmount
+df -h | grep nfsmount
+```
+
+
+```sh
+# 写入一个测试文件【哪个机器都行】
+echo "hello nfs server" > /root/nfsmount/test.txt
+#在 nfs 服务器上执行以下命令，验证文件写入成功
+cat /nfs/data/test.txt
+cat /root/nfsmount/test.txt
+```
+
+
 
 #### 2、VOLUME进行挂载测试
 
@@ -520,34 +593,6 @@ spec:
 
 
 
-
-
-#### 3、扩展-NFS文件同步
-
-```sh
-#服务器端防火墙开放111、662、875、892、2049的 tcp / udp 允许，否则远端客户无法连接。
-#安装客户端工具
-yum install -y nfs-utils
-
-
-#执行以下命令检查 nfs 服务器端是否有设置共享目录
-# showmount -e $(nfs服务器的IP)
-showmount -e 172.26.165.243
-# 输出结果如下所示
-Export list for 172.26.165.243
-/nfs/data *
-
-#执行以下命令挂载 nfs 服务器上的共享目录到本机路径 /root/nfsmount
-mkdir /root/nfsmount
-# mount -t nfs $(nfs服务器的IP):/root/nfs_root /root/nfsmount
-#高可用备份的方式
-mount -t nfs 172.26.165.243:/nfs/data /root/nfsmount
-# 写入一个测试文件
-echo "hello nfs server" > /root/nfsmount/test.txt
-
-#在 nfs 服务器上执行以下命令，验证文件写入成功
-cat /root/nfsmount/test.txt
-```
 
 
 
@@ -615,8 +660,16 @@ https://kubernetes.io/zh/docs/concepts/storage/persistent-volumes/#access-modes
 
 
 
-#### 2、回收策略
+#### 2、pv的回收策略
 
+Pod自己绑定的申请书只能自己用，默认别人都不能用，即使Pod死了，即使pvc删除
+
+persistentVolumeReclaimPolicy【回收策略】 定义当从pvc释放pv时会发生什么。
+
+目前的回收策略有：
+- Retain -- 手动回收
+- Recycle -- 简单擦除（rm -rf pv的文件路径/*）
+- Delete -- 删除存储卷
 https://kubernetes.io/zh/docs/concepts/storage/persistent-volumes/#reclaim-policy
 
 

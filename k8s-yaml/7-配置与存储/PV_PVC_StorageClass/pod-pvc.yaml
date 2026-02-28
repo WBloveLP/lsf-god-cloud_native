@@ -22,21 +22,28 @@ spec:
       hostPath:
         path: /usr/share/zoneinfo/Asia/Shanghai
     - name: html
-      persistentVolumeClaim:
+      persistentVolumeClaim: #持久卷申请：会关联一个persistentVolume（持久卷）；k8s会给你你要求的空间
          claimName:  nginx-pvc  ### 你的申请书的名字
-  restartPolicy: Always
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: PersistentVolumeClaim #开发只管申请 
 metadata:
   name: nginx-pvc
   namespace: default
   labels:
     app: nginx-pvc
 spec:
-  storageClassName: my-nfs-storage  ## 存储类的名字
+  storageClassName: my-nfs-storage  ## 存储类的名字：要与pv的storageClassName名字一样
   accessModes:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 50m
+      storage: 5m
+      # storage: 2Gi
+
+
+
+      
+#kubectl get pvc
+#kubectl get pv 
+#会发现有合适空间大小的pv被 default/nginx-pvc【CLAIM申请书】给 Bound【STATUS】了
