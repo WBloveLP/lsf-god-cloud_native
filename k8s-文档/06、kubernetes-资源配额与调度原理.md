@@ -327,13 +327,20 @@ spec:
 
 Pod。scheduler要计算他应该去哪个Node合适。（调度）
 
-nodeSelector ： 指定去哪些Node
+nodeSelector ： 指定去哪些Node【安装ingress-nginx的时候就用了】
 
 
 
 ## 1、nodeSelector 
 
 `nodeSelector` 是节点选择约束的最简单推荐形式。`nodeSelector` 是 PodSpec 的一个字段。 它包含键值对的映射。为了使 pod 可以在某个节点上运行，该节点的标签中 必须包含这里的每个键值对（它也可以具有其他标签）。 最常见的用法的是一对键值对。
+
+```sh
+#打标签：
+kubectl label -h
+kubectl label nodes k8s-node2 nodename=k8snode2 
+kubectl get node --show-labels
+```
 
 ```yaml
 apiVersion: v1
@@ -348,14 +355,12 @@ spec:
     image: nginx
     imagePullPolicy: IfNotPresent
   nodeSelector:
-    disktype: ssd  ## 标签名。每个Node节点可以打标签
+    # disktype: ssd  ## 标签名。每个Node节点可以打标签
+    nodename: k8snode2 
 ```
 
 
 
-```sh
-ingress-nginx：参照
-```
 
 
 
@@ -381,7 +386,7 @@ ingress-nginx：参照
 
 
 
-### 1、直接不用调度
+不用调度，直接指定去哪个节点部署：【kubectl get pod -n test  quota-mem-cpu-www  -oyaml发现部署好的Pod有个字段nodeName: k8s-node1】，所以：
 
 ```yaml
 apiVersion: v1
@@ -391,7 +396,8 @@ metadata:
   labels:
     env: test
 spec:
-  nodeName: k8s-node1  ## master默认除外  ## scheduler无需工作
+  ## scheduler无需工作【无需调度】
+  nodeName: k8s-node1  ## master默认除外  
   containers:
   - name: nginx
     image: nginx
