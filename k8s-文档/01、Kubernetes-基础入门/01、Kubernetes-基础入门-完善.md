@@ -324,7 +324,7 @@ node：work节点（工作节点）。 很多。真正干应用的活
 > - Kube-proxy：
 > - 其他：
 
-## 2、组件交互原理
+## 2-1、组件交互原理
 
 ![1619076211983](assets/1619076211983.png)
 
@@ -367,7 +367,27 @@ node：work节点（工作节点）。 很多。真正干应用的活
 
 
 
+## 2-2、组件交互流程概述：
 
+整体工作流程示例：创建一个 Nginx Deployment
+
+用户执行 kubectl create deployment nginx --image=nginx --replicas=3。
+
+API Server 接收请求，写入 Deployment 对象到 etcd，并返回成功。
+
+Deployment Controller 监听到新的 Deployment，创建对应的 ReplicaSet（通过 API Server 写入 etcd）。
+
+ReplicaSet Controller 监听到 ReplicaSet，发现需要 3 个 Pod，创建 3 个 Pod 对象（写入 etcd）。
+
+Scheduler 监听到未调度的 Pod，为每个 Pod 选择合适节点，并通过 API Server 绑定节点（更新 Pod 的 nodeName 到 etcd）。
+
+各节点上的 Kubelet 监听到分配给本节点的 Pod，调用容器运行时启动容器。
+
+容器运行后，Kubelet 通过 API Server 更新 Pod 状态为 Running。
+
+如果此时创建了一个 Service 暴露这些 Pod，kube-proxy 会监听到 Service 和 Endpoint 变化，在节点上配置转发规则，使客户端可通过 Service IP 访问 Pod。
+
+所有组件都围绕 API Server 通信，etcd 提供一致的状态存储，共同保障集群的声明式运维。
 
 
 
@@ -803,12 +823,12 @@ echo "127.0.0.1   $(hostname)" >> /etc/hosts
 
 - 2、所有机器批量执行如下脚本
 
-- ```sh
+```sh
   #先在所有机器执行 vi k8s.sh
   # 进入编辑模式（输入i），把如下脚本复制
   # 所有机器给脚本权限  chmod +x k8s.sh
   #执行脚本 ./k8s.sh
-  ```
+```
 
 ```sh
 #/bin/sh
