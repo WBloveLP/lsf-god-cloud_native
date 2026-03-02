@@ -7,11 +7,10 @@ metadata:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: k8s-sigs.io/nfs-subdir-external-provisioner 
 #provisioner指定一个供应商的名字。  
-#必须匹配 k8s-deployment 的 env PROVISIONER_NAME的值
+#必须匹配 k8s的deployment 的 env 的 PROVISIONER_NAME的值
 parameters:
   archiveOnDelete: "true"  ## 删除pv的时候，pv的内容是否要备份
   #### 这里可以调整供应商能力。
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -49,13 +48,13 @@ spec:
             - name: PROVISIONER_NAME
               value: k8s-sigs.io/nfs-subdir-external-provisioner
             - name: NFS_SERVER
-              value: 10.170.11.8 ## 指定自己nfs服务器地址
+              value: 192.168.10.137 ## 指定自己nfs服务器地址
             - name: NFS_PATH  
               value: /nfs/data  ## nfs服务器共享的目录
       volumes:
         - name: nfs-client-root
           nfs:
-            server: 10.170.11.8
+            server: 192.168.10.137 
             path: /nfs/data
 ---
 apiVersion: v1

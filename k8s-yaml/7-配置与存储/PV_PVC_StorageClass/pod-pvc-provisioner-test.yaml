@@ -34,7 +34,7 @@ metadata:
   labels:
     app: nginx-666-pvc
 spec:
-  storageClassName: managed-nfs-storage  ## 存储类的名字
+  storageClassName: managed-nfs-storage  ## 存储类StorageClass的名字
   accessModes:
   - ReadWriteOnce
   resources:
