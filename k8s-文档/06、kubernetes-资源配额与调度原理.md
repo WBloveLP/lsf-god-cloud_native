@@ -2,13 +2,13 @@
 
 <center>
 <h1>
-    Kubernetes 调度原理
+    Kubernetes 资源配额与调度原理
     </h1>    
 </center>
 
 
 
-# 一、ResourceQuota
+# 一、ResourceQuota 资源配额
 
 https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/
 
@@ -30,6 +30,49 @@ https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/
 
 https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/
 
+
+kubectl create namespace quota-mem-cpu-example
+
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mem-cpu-demo
+  namespace: quota-mem-cpu-example
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+
+#kubectl apply -f xxx.yaml --namespace=quota-mem-cpu-example
+#kubectl apply -f xxx.yaml -n quota-mem-cpu-example
+```
+
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: quota-mem-cpu-demo
+  namespace: quota-mem-cpu-example
+spec:
+  containers:
+  - name: quota-mem-cpu-demo-ctr
+    image: nginx
+    resources:
+      limits:
+        memory: "800Mi"
+        cpu: "800m"
+      requests:
+        memory: "600Mi"
+        cpu: "400m"
+```
+
+
+kubectl get resourcequotas -n quota-mem-cpu-example
 
 
 ## 3、计算资源配额
@@ -75,6 +118,7 @@ https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/quota-me
 
 这是用户可能希望利用对象计数配额来管理的一组资源示例。
 
+- `count/pods`
 - `count/persistentvolumeclaims`
 - `count/services`
 - `count/secrets`
@@ -183,26 +227,34 @@ spec:
 
 
 
-# 二、LimitRange
+# 二、LimitRange 限制范围
+
+
 
 https://kubernetes.io/zh/docs/concepts/policy/limit-range/
 
 
 
-批量删除
-
-kubectl delete pods my-dep-5b7868d854-6cgxt quota-mem-cpu-demo quota-mem-cpu-demo2 -n hello
+>
+>ResourceQuota (资源配额): 命名空间级别，对所有资源的总和进行限制。
+>
+>LimitRange (限制范围)： Pod/容器级别，对单个实例进行限制。
+>
 
 ## 1、简介
 
+
+
+
 - 默认情况下， Kubernetes 集群上的容器运行使用的[计算资源](https://kubernetes.io/zh/docs/concepts/configuration/manage-resources-containers/)没有限制。 
-- 使用资源配额，集群管理员可以以[名字空间](https://kubernetes.io/zh/docs/concepts/overview/working-with-objects/namespaces/)为单位，限制其资源的使用与创建。 
+- 使用资源配额，集群管理员可以以[命名空间](https://kubernetes.io/zh/docs/concepts/overview/working-with-objects/namespaces/)为单位，限制其资源的使用与创建。 
 - 在命名空间中，一个 Pod 或 Container 最多能够使用命名空间的资源配额所定义的 CPU 和内存用量。 
-- 有人担心，**一个 Pod 或 Container 会垄断所有可用的资源**。 LimitRange 是在命名空间内限制资源分配（给多个 Pod 或 Container）的策略对象。
-- 超额指定。配额  1和cpu，1g内存。
-  - Pod。  requests: cpu: 1,memory: 1G。这种直接一次性占完
-  - 我们需要使用LimitRange限定一个合法范围
-    - 限制每个Pod能写的合理区间
+- 有人担心，**一个 Pod 或 Container 会垄断所有可用的资源**。 
+- 举例子：超额指定。配额1核cpu，1g内存。
+  - 防止：一个Pod-requests: cpu: 1,memory: 1G。这种直接一次性占完
+  - 我们需要使用LimitRange限定一个合法范围：限制每个Pod能写的合理区间
+- LimitRange 是在命名空间内限制资源分配（给多个 Pod 或 Container）的策略对象。
+
 
 
 
@@ -211,8 +263,7 @@ kubectl delete pods my-dep-5b7868d854-6cgxt quota-mem-cpu-demo quota-mem-cpu-dem
 - 在一个命名空间中实施对每个 Pod 或 Container 最小和最大的资源使用量的限制。
 - 在一个命名空间中实施对每个 PersistentVolumeClaim 能申请的最小和最大的存储空间大小的限制。
 - 在一个命名空间中实施对一种资源的申请值和限制值的比值的控制。
-- 设置一个命名空间中对计算资源的默认申请/限制值，并且自动的在运行时注入到多个 Container 中。
-
+- 设置一个命名空间中对计算资源的默认申请/限制值，并且自动的在运行时注入到多个 Container 中。【也就是说：有了LimitRange，如果命名空间下的计算资源 （如 `cpu` 和 `memory`）的配额被启用, 用户就非必须为这些资源设定请求值（request）和约束值（limit）了 】
 
 
 ## 2、实战
@@ -222,6 +273,8 @@ kubectl delete pods my-dep-5b7868d854-6cgxt quota-mem-cpu-demo quota-mem-cpu-dem
 - [如何配置每个命名空间默认的 CPU 申请值和限制值](https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/)。
 - [如何配置每个命名空间默认的内存申请值和限制值](https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/)。
 - [如何配置每个命名空间最小和最大存储使用量](https://kubernetes.io/zh/docs/tasks/administer-cluster/limit-storage-consumption/#limitrange-to-limit-requests-for-storage)。
+
+
 
 ```yaml
 apiVersion: v1
@@ -239,6 +292,9 @@ spec:
       memory: "20m"
     type: Container
 ```
+
+
+
 
 ```yaml
 apiVersion: v1
@@ -258,64 +314,6 @@ spec:
         memory: "10Mi"
         cpu: "20m"   ## 20m违背了 min.cpu: "200m"
 ```
-
-
-
-
-
-
-
-- ResourceQuota：CPU内存都限制了
-- LimitRange：只给了CPU的合法区别。
-  - 以后Pod只需要写内存的合法区间
-  
-  - **LimitRange**都指定范围。Pod可以不用指定，如下，用到默认最大值
-  
-  - ![1621050950187](assets/1621050950187.png)
-  
-  - ```yaml
-       default	<map[string]string>: 给limits默认值
-          
-       defaultRequest	<map[string]string>: 给requests默认值的
-          
-       max	<map[string]string>: 最大使用量
-          
-       maxLimitRequestRatio	<map[string]string>: 3 
-       		limit / request <= ratio;
-       		800/200 = 4 > 3 ## 被拒绝
-       		
-       ```
-  
-  
-       min	<map[string]string>: 最小使用量
-        
-       type	<string> -required-: Container、Pod
-  
-    ```
-  
-  - ```yaml
-    apiVersion: v1
-    kind: LimitRange
-    metadata:
-      name: limit-memory-ratio-pod
-    spec:
-      limits:
-      - maxLimitRequestRatio:
-          memory: 2
-          cpu: 3
-        type: Pod
-      - type: Container
-        max: 
-        min: 
-    ```
-
-
-
-
-
-
-
-
 
 
 
