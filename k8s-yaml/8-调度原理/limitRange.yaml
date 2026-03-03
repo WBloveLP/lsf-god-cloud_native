@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ResourceQuota
 metadata:
   name: mem-cpu-demo
-  namespace: test
+  namespace: limitrangetest
 spec:
   hard:
     requests.cpu: "1" # 1核==1000m
@@ -14,15 +14,21 @@ apiVersion: v1
 kind: LimitRange
 metadata:
   name: cpu-min-max-demo-lr
-  namespace: test
+  namespace: limitrangetest
 spec:
   limits:
-  - max: ## Pod不写limit,request，那么limits、requests就会用到这儿设置的默认最大值
+  - max: 
       cpu: "800m" 
       memory: "800Mi" 
     min: 
       cpu: "400m"
       memory: "600Mi"
+    # default:           #不写默认就是用max
+    #   cpu: "400m"
+    #   memory: "600Mi"
+    # defaultRequest: 
+    #   cpu: "400m"
+    #   memory: "600Mi"
     type: Container
 ---
 #有了LimitRange，如果命名空间下的计算资源 （如 `cpu` 和 `memory`）的配额被启用
@@ -31,7 +37,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: quota-mem-cpu-www
-  namespace: test
+  namespace: limitrangetest
 spec:
   containers:
   - name: quota-mem-cpu-demo-ctr

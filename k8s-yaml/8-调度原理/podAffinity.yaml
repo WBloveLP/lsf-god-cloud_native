@@ -1,0 +1,76 @@
+## redis很可能部署在同一个机器， 每一个机器只希望有一个redis
+
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: redis-cache
+spec:
+  selector:
+    matchLabels:
+      app: store
+  replicas: 2
+  template: 
+    metadata:
+      labels:
+        app: store
+    spec:
+      containers:
+      - name: redis-server
+        image: redis
+      affinity:
+        podAntiAffinity: ## 符合以下指定条件的不会被调度过去
+          requiredDuringSchedulingIgnoredDuringExecution:  ## 硬标准
+            - labelSelector:
+                matchExpressions:  ## 如果按照以下标签找到了Pod就不来了
+                  - key: app
+                    operator: In
+                    values:
+                    - store
+              topologyKey: "kubernetes.io/hostname"  #required必须写，优先判断topo键
+          ## 拓扑键(划分逻辑区域)。假设node节点以name为拓扑网络，那么name相同就认为是同一个东西
+          ## 亲和就是都放在这个逻辑区域，反亲和就是必须避免放在同一个逻辑区域
+
+---
+
+
+
+## 部署web   期望 web-server 尽可能与 redis 在同一个节点上。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+spec:
+  selector:
+    matchLabels:
+      app: web-store
+  replicas: 10
+  template:
+    metadata:
+      labels:
+        app: web-store
+    spec:
+      affinity:
+        ## 如果希望web在同一个拓扑网络只能有一个副本可以加上（replicas记得改）：
+        # podAntiAffinity: #不能在同一个拓扑网络
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app
+        #         operator: In
+        #         values:
+        #         - web-store
+        #     ## 不能在同一个拓扑网络，
+        #     topologyKey: "kubernetes.io/hostname"
+        podAffinity:  #需要在同一个拓扑网络
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            ## 必须在同一逻辑分区（拓扑网络）
+            topologyKey: "kubernetes.io/hostname" 
+      containers:
+      - name: web-app
+        image: nginx

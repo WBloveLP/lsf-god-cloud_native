@@ -9,13 +9,14 @@ spec:
   containers:
   - name: busy-affinity-shib
     image: "busybox"
+    command: ["/bin/sh","-c","sleep 1000000"]
   affinity:
     nodeAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:  ## 软性分
-      - preference: ## 指定我们喜欢的条件  shib
+      preferredDuringSchedulingIgnoredDuringExecution:  ## 软性评分
+      - preference: ## 指定我们喜欢的条件
           matchExpressions:
           - key: disk
-            values: ["400"]
+            values: ["40"]
             operator: Gt
         weight: 90 ## 权重 0-100
       - preference: ## 指定我们喜欢的条件
@@ -23,8 +24,7 @@ spec:
           - key: gpu
             values: ["40000"]
             operator: Gt  ## node1的gpu不满足这个条件
-        weight: 10 ## 权重 0-100
-
+        weight: 30 ## 权重 0-100
       # requiredDuringSchedulingIgnoredDuringExecution: ## 硬标准
       #   nodeSelectorTerms:
       #   - matchExpressions:
@@ -35,15 +35,19 @@ spec:
               # NotIn（disktype只要不是"ssd"或者"hdd"）,
               # Exists(disktype只要存在，无论值是什么，value不用写), 
               # DoesNotExist(disktype只要不存在，无论值是什么，value不用写), 
-              # Gt（key大于指定的值的节点）, 
-              # Lt（key小于指定的值的节点）
+              # Gt（key大于指定的值）, 
+              # Lt（key小于指定的值）
 
-## FailedScheduling  26s   default-scheduler  0/3 nodes are available: 
+## FailedScheduling  26s   default-scheduler  0/3 nodes are available: （总共3个节点都不可用）
 # 1 node(s) had taint {node-role.kubernetes.io/master: }, 
-# that the pod didn't tolerate, （一个节点不能调）
+# that the pod didn't tolerate, （一个节点【master】不能调）
 # 2 node(s) didn't match Pod's node affinity/selector.（两个节点不满足）
-# kubectl 
+
+
+
 # 标签打上以后就分配成功
 
-            
-   
+
+## DuringScheduling（调度期间有效）IgnoredDuringExecution（执行期间忽略：亲和策略与反亲和策略只在Pod调度期间有效，执行期间（Pod运行期间）会被忽略。
+## required指定硬标准、preferred指定软标准
+##注意：如果你修改或删除了 pod 所调度到的节点的标签，pod 不会被删除。换句话说，亲和选择只在 pod 调度期间有效。

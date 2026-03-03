@@ -35,7 +35,7 @@ kubectl get secrets lpwb-tls -o yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: itdachang-ingress
+  name: my-ingress
   namespace: default
 spec:
   tls:

@@ -1,0 +1,13 @@
+[root@k8s-master ~]# kubectl explain limitrange.spec.limits
+
+   default	<map[string]string> ： limits的默认值
+
+   defaultRequest	<map[string]string>: requests的默认值
+
+   max	<map[string]string>: 最大值
+
+   min	<map[string]string>：最小值
+
+   type	<string> -required-: 类型  Container / Pod ，一般都使用Container
+
+   maxLimitRequestRatio	<map[string]string> ：最大率：limits / requests <= ratio

@@ -2,17 +2,17 @@
 
 <center>
 <h1>
-    Kubernetes 资源配额与调度原理
+    Kubernetes 资源限制与调度原理
     </h1>    
 </center>
 
+# 一、资源限制
 
-
-# 一、ResourceQuota 资源配额
+## ResourceQuota 资源配额
 
 https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/
 
-## 1、简介
+### 1、简介
 
 - 当多个用户或团队共享具有固定节点数目的集群时，人们会担心**有人使用超过其基于公平原则所分配到的资源量。**
 - 资源配额是帮助管理员解决这一问题的工具。
@@ -26,7 +26,7 @@ https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/
 
 
 
-## 2、实战测试
+### 2、实战测试
 
 https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/
 
@@ -75,7 +75,7 @@ spec:
 kubectl get resourcequotas -n quota-mem-cpu-example
 
 
-## 3、计算资源配额
+### 3、计算资源配额
 
 | 资源名称           | 描述                                                         |
 | ------------------ | ------------------------------------------------------------ |
@@ -89,7 +89,7 @@ kubectl get resourcequotas -n quota-mem-cpu-example
 
 
 
-## 4、存储资源配额
+### 4、存储资源配额
 
 [https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/#%E5%AD%98%E5%82%A8%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D](https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/#存储资源配额)
 
@@ -107,7 +107,7 @@ kubectl get resourcequotas -n quota-mem-cpu-example
 
 
 
-## 5、对象数量配额
+### 5、对象数量配额
 
 [https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/#%E5%AF%B9%E8%B1%A1%E6%95%B0%E9%87%8F%E9%85%8D%E9%A2%9D](https://kubernetes.io/zh/docs/concepts/policy/resource-quotas/#对象数量配额)
 
@@ -150,7 +150,7 @@ kubectl get resourcequotas -n quota-mem-cpu-example
 
 
 
-## 6、优先级
+### 6、优先级
 
 ```yaml
 apiVersion: v1
@@ -227,7 +227,7 @@ spec:
 
 
 
-# 二、LimitRange 限制范围
+## LimitRange 限制范围
 
 
 
@@ -241,7 +241,7 @@ https://kubernetes.io/zh/docs/concepts/policy/limit-range/
 >LimitRange (限制范围)： Pod/容器级别，对单个实例进行限制。
 >
 
-## 1、简介
+### 1、简介
 
 
 
@@ -266,7 +266,7 @@ https://kubernetes.io/zh/docs/concepts/policy/limit-range/
 - 设置一个命名空间中对计算资源的默认申请/限制值，并且自动的在运行时注入到多个 Container 中。【也就是说：有了LimitRange，如果命名空间下的计算资源 （如 `cpu` 和 `memory`）的配额被启用, 用户就非必须为这些资源设定请求值（request）和约束值（limit）了 】
 
 
-## 2、实战
+### 2、实战
 
 - [如何配置每个命名空间最小和最大的 CPU 约束](https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/)。
 - [如何配置每个命名空间最小和最大的内存约束](https://kubernetes.io/zh/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/)。
@@ -321,7 +321,7 @@ spec:
 
 
 
-# 三、调度原理
+# 二、调度原理
 
 
 
@@ -416,14 +416,17 @@ spec:
 
 ## 2、Affinity(亲和) and anti-affinity(反亲和)
 
+>亲和：喜欢；反亲和：讨厌
+
 Pod：到底去哪些机器。
 
 - scheduler 进行自己计算调度
-- 某些机器对这些Pod有吸引力。Pod希望scheduler 把他调度到他喜欢的**哪些机器**。
+- 希望某些机器对这些Pod有吸引力。Pod希望 scheduler 把他调度到他喜欢的**那些机器**。
 
-亲和性能设置如下
+亲和性能设置如下：
 
 ```yaml
+# kubectl explain pod.spec.affinity
 KIND:     Pod
 VERSION:  v1
 
@@ -437,14 +440,9 @@ DESCRIPTION:
 FIELDS:
    nodeAffinity	<Object>: 指定亲和的节点（机器）。
 
-   podAffinity	<Object>: 指定亲和的Pod。这个Pod部署到哪里看他亲和的Pod在哪里
-     Describes pod affinity scheduling rules (e.g. co-locate this pod in the
-     same node, zone, etc. as some other pod(s)).
+   podAffinity	<Object>: 指定亲和的Pod。这个Pod部署到哪里，看他亲和的Pod在哪里
 
    podAntiAffinity	<Object>： Pod的反亲和。
-     Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod
-     in the same node, zone, etc. as some other pod(s)).
-
 ```
 
 
@@ -453,22 +451,20 @@ FIELDS:
 
 ### 1、Node Affinity （节点亲和）
 
+
+>required指定硬标准（必须满足,否则不调度）、preferred指定软标准（不用满足，只是比较喜欢）
+
+
 **nodeSelector 的升级版**。节点亲和概念上类似于 `nodeSelector`，它使你可以根据节点上的标签来约束 pod 可以调度到哪些节点。
 
 
 
 与nodeSelector差异
-
 - 引入运算符：In，NotIn（labelSelector语法）
 - 支持枚举label的可能的取值。如 zone in [az1,az2,az2]
 - 支持**硬性过滤**和**软性评分**
-  - 硬过滤规则支持指定 **多条件之间的逻辑或运算**
-  
-  - 软性评分规则支持 **设置条件权重**
-  
-  - 
-    
-  - 
+  - 硬过滤规则【required】支持指定 **多条件之间的逻辑或运算**
+  - 软性评分规则【preferred】支持 **设置条件权重**
 
 ```yaml
 apiVersion: v1
@@ -480,15 +476,13 @@ spec:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution: #硬性过滤：排除不具备指定label的node
         nodeSelectorTerms: 
-          - matchExpressions:  #所有matchExpressions满足条件才行
+          - matchExpressions:  #所有matchExpressions满足条件才行 可以写：matchExpressions	<[]Object> 、matchFields <[]Object>
               - key: disktype
                 operator: In
                 values:
                   - ssd
                   - hdd
- ##    matchExpressions	<[]Object> \matchFields <[]Object>
- ## DuringScheduling（调度期间有效）IgnoredDuringExecution（执行期间忽略）、亲和策略与反亲策略只在Pod调度期间有效，执行期间（Pod运行期间）会被忽略。
- ## required指定硬标准、preferred指定软标准
+ ## DuringScheduling（调度期间有效）IgnoredDuringExecution（执行期间忽略：亲和策略与反亲和策略只在Pod调度期间有效，执行期间（Pod运行期间）会被忽略。
       preferredDuringSchedulingIgnoredDuringExecution:  #软性评分：不具备指定label的node打低分，降低node被选中的几率
         - weight: 1
           preference:
@@ -523,10 +517,10 @@ Pod之间的亲和性与反亲和性（inter-pod affinity and anti-affinity）**
 
 
 
-示例：在一个三节点的集群中，部署一个使用 redis 的 web 应用程序，并期望 web-server 尽可能与 redis 在同一个节点上。
+示例：在一个2节点的集群中，部署一个使用 redis 的 web 应用程序，并期望 web-server 尽可能与 redis 在同一个节点上。
 
 ```yaml
-#下面是 redis deployment 的 yaml 片段，包含三个副本以及 `app=store` 标签选择器。Deployment 中配置了 `PodAntiAffinity`，确保调度器不会将三个副本调度到一个节点上：
+#下面是 redis deployment 的 yaml 片段，包含2个副本以及 `app=store` 标签选择器。Deployment 中配置了 `PodAntiAffinity`，确保调度器不会将2个副本调度到一个节点上：
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -580,7 +574,7 @@ spec:
                 operator: In
                 values:
                 - web-store
-            topologyKey: "kubernetes.io/hostname" #不能再同一个拓扑网络
+            topologyKey: "kubernetes.io/hostname" #不能在同一个拓扑网络
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
@@ -595,15 +589,42 @@ spec:
         image: nginx:1.12-alpine
 ```
 
-| k8s-001      | k8s-002     | k8s-003     |
-| ------------ | ----------- | ----------- |
-| web-server-1 | webserver-2 | webserver-3 |
-| cache-1      | cache-2     | cache-3     |
 
+区域反亲策略测试：
 
-
-
-
+```yaml
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: redis-cache
+spec:
+  selector:
+    matchLabels:
+      app: store
+  replicas: 2
+  template:  ## Pod模板
+    metadata:
+      labels:
+        app: store
+    spec:
+      containers:
+      - name: redis-server
+        image: redis:3.2-alpine
+      affinity:
+        podAntiAffinity: ## 符合以下指定条件的不会被调度过去
+          requiredDuringSchedulingIgnoredDuringExecution:  ## 硬标准
+            - labelSelector:
+                matchExpressions:  ## 如果按照以下标签找到了Pod就不来了
+                  - key: app
+                    operator: In
+                    values:
+                    - store
+              topologyKey: "zone"    #required必须写，优先判断topo键
+              ## 拓扑键(划分逻辑区域)。假设node节点以name为拓扑网络，那么name相同就认为是同一个东西
+              ## 亲和就是都放在这个逻辑区域，反亲和就是必须避免放在同一个逻辑区域
+              #kubectl label k8s-node1 zone=shanghai
+              #kubectl label k8s-node2 zone=shanghai
+```
 
 
 ## 3、污点与容忍
@@ -624,38 +645,38 @@ Pod 中存在属性 Node selector / Node affinity，用于将 Pod 指定到合�
 
 ### 2、向节点添加污点
 
-```yaml
+```sh
+kubectl taint nodes 节点名  污点的key=污点的值:污点的效果
+
 kubectl taint nodes node1 key=value:NoSchedule
 #该命令为节点 node1 添加了一个污点。污点是一个键值对，在本例中，污点的键为 key，值为 value，污点效果为 NoSchedule。此污点意味着 Kubernetes 不会向该节点调度任何 Pod，除非该 Pod 有一个匹配的容忍（toleration）
 
-kubectl taint nodes 节点名  污点key=污点的值:污点的效果
-# 比如matser的污点：有这个污点不能调度
-node-role.kubernetes.io/master:NoSchedule
 
 #执行如下命令可以将本例中的污点移除：
 kubectl taint nodes node1 key:NoSchedule-
 ```
 
-污点写法；  **k=v:effect**
 
-  haha=hehe:NoExecute ： 节点上的所有。Pod全部被驱逐。
-
-停机维护：
-
-- node1： Pod
-- 给node1打个污点。haha=hehe:NoExecute；Pod被赶走。。。。在其他机器拉起
-
-
-
+污点写法；  **k=v:effect**【v可以省略】
 支持的效果 `effect` 有：
 
-- **`NoSchedule`**：不调度。不给给我这里调度Pod
-- **`PreferNoSchedule`** 比 `NoSchedule` 更宽容一些，Kubernetes 将尽量避免将没有匹配容忍的 Pod 调度到该节点上，但是并不是不可以
+- **`NoSchedule`**：不调度。不给我这里调度Pod【新的Pod不能给当前节点调度，但是不影响其他人的工作】
+- **`PreferNoSchedule`** 比 `NoSchedule` 更宽容一些，Kubernetes 尽量避免将没有匹配容忍的 Pod 调度到该节点上，但是并不是不可以
 - **`NoExecute`** 不能在节点上运行（如果已经运行，将被驱逐）
 
-master节点默认是有一个污点的
 
-![image-20200528213720275](assets/image-20200528213720275.png)
+master节点默认是有一个污点的: `kubectl describe node k8s-master | grep Taints`
+      Taints:             node-role.kubernetes.io/master:NoSchedule
+
+
+
+
+举例：
+haha=hehe:NoExecute ： 节点上的所有Pod全部被驱逐。
+
+
+停机维护：给node1打个污点。haha=hehe:NoExecute，Pod被赶走，在其他机器拉起。机器修复好后，再去除污点即可。
+
 
 ### 3、向 Pod 添加容忍
 
@@ -712,8 +733,7 @@ spec:
 - 污点的operator为：
   - `Exists` （此时污点中不应该指定 `value`）
   - 或者 `Equal` （此时容忍的 `value` 应与污点的 `value` 相同）
-
-如果不指定 `operator`，则其默认为 `Equal`
+  - 如果不指定 `operator`，则其默认为 `Equal`
 
 > 特殊情况
 >
@@ -732,26 +752,24 @@ spec:
 > ```yaml
 > tolerations:
 >  - key: "key"
->    operator: "Exists"  ## 无论无论效果是什么都能忍
->    
->    
-> #最终，有这个污点的机器我们可以容忍，pod可以调度和运行
+>    operator: "Exists"  ## 无论这个污点key的效果是什么都能忍
+> #最终，有这个污点key的机器我们可以容忍，pod可以调度和运行
+> ```
+
+> - 默认情况下，节点有不能执行的污点，节点中的Pod都会被赶走。
+> ```yaml
 > tolerations:
 >  - key: "key"
 >    operator: "Exists"  
->    effect: "NoExecute"  ## 默认节点有不能执行的污点。节点Pod都会被赶走。Pod只要忍不执行，节点有不执行的污点，Pod也不会被驱逐。可以指定 tolerationSeconds：来说明Pod最多在Node上呆多久
->    
->    
->    
->    ## k8s底层发现网络有问题会给这个机器打上
->    	## key：“node.kubernetes.io/unreachable”  effect: "NoExecute"。 Pod立马驱动？？
->    	
->    
+>    effect: "NoExecute"  
+> # Pod只要忍NoExecute，即使节点有NoExecute的污点，Pod也不会被驱逐。
+> # 可以指定tolerationSeconds：来说明Pod最多在Node上呆多久
 > ```
+>    
 
 
 
-**一个节点上可以有多个污点，同时一个 Pod 上可以有多个容忍。**Kubernetes 使用一种类似于过滤器的方法来处理多个节点和容忍：
+**一个节点上可以有多个污点，同时一个 Pod 上可以有多个容忍。** Kubernetes 使用一种类似于过滤器的方法来处理多个节点和容忍：
 
 - 对于节点的所有污点，检查 Pod 上是否有匹配的容忍，如果存在匹配的容忍，则忽略该污点；
 - 剩下的不可忽略的污点将对该 Pod 起作用
@@ -826,10 +844,10 @@ tolerations:
 - `node.kubernetes.io/not-ready`： 节点未就绪。对应着 NodeCondition `Ready` 为 `False` 的情况
 - `node.kubernetes.io/unreachable`： 节点不可触达。对应着 NodeCondition `Ready` 为 `Unknown` 的情况
 - `node.kubernetes.io/out-of-disk`：节点磁盘空间已满
-- `node.kubernetes.io/memory-pressure`：节点内存吃紧: NoSchedule
-- `node.kubernetes.io/disk-pressure`：节点磁盘吃紧: NoSchedule
-- `node.kubernetes.io/network-unavailable`：节点网络不可用: NoExecute
-- `node.kubernetes.io/unschedulable`：节点不可调度: 
+- `node.kubernetes.io/memory-pressure`：节点内存吃紧
+- `node.kubernetes.io/disk-pressure`：节点磁盘吃紧
+- `node.kubernetes.io/network-unavailable`：节点网络不可用
+- `node.kubernetes.io/unschedulable`：节点不可调度 
 - `node.cloudprovider.kubernetes.io/uninitialized`：如果 kubelet 是由 "外部" 云服务商启动的，该污点用来标识某个节点当前为不可用的状态。在“云控制器”（cloud-controller-manager）初始化这个节点以后，kubelet将此污点移除
 
 自 kubernetes 1.13 开始，上述特性被默认启用。
@@ -881,29 +899,67 @@ tolerations:
 
 
 
-# 五、其他
+# 三、其他
 
-## 1、拓扑分区约束
+## 1、拓扑分布约束
 
-https://kubernetes.io/zh/docs/concepts/workloads/pods/pod-topology-spread-constraints/
+>可以更加细粒度的规划和平衡整个集群的资源
 
-
-
-[深入理解拓扑最大倾斜](https://kubernetes.io/blog/2020/05/introducing-podtopologyspread/)
-
-画出自己的机器拓扑分区图。 1000node
+https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/topology-spread-constraints/
 
 
+集群划分：
+
+![20260303_145422](assets/20260303_145422.png)
+
+
+Pod划分：
+
+
+![20260303_145523](assets/20260303_145523.png)
+
+
+加入节点：
+
+
+```yaml
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mypod
+  labels:
+    foo: bar
+spec:
+  topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: zone
+    whenUnsatisfiable: DoNotSchedule #当不满足maxSkew的时候咋办 DoNotSchedule / ScheduleAnyway
+    labelSelector: #与此标签选择器匹配的 Pod 将被计数，以确定其对应拓扑域中的 Pod 数量。
+      matchLabels:
+        foo: bar
+  containers:
+  - name: pause
+    image: registry.k8s.io/pause:3.1
+```
+
+最终效果：
+
+
+![20260303_145647](assets/20260303_145647.png)
+
+
+maxSkew：最大倾斜【跟数据结构中树的平衡因子差不多：zoneA有两个，zoneB有两个，就是平的；zoneA有3个，zoneB有1个，那么平衡因子就是2，是不符合maxSkew=1的】
+
+
+------------------------
 
 
 
-更详细的指定拓扑网络的策略；
+深入理解拓扑最大倾斜：https://kubernetes.io/blog/2020/05/introducing-podtopologyspread/
 
-用来规划和平衡整个集群的资源；maxSkew；
+![例子](assets/advanced-usage-1.png)
 
 
-
-![1621138786209](assets/1621138786209.png)
 
 ## 2、资源调度
 
@@ -914,7 +970,7 @@ containers：resources来做资源限定。
 
 
 
-问题1：
+问题1：Pod可调度到哪个节点？
 
 >  Pod： c1 = request: 200m     c2 = request: 300m    c3 = request: 100m
 >
@@ -937,24 +993,20 @@ containers：resources来做资源限定。
 >  ​        image: "busybox""
 >
 >  ​        command: ["sleep","3600"] 
-
-
-
 >  Node:  
 >
 >  - node1: 300m - cpu
 >  - node2: 500m - cpu
->  - node3: 700m - cpu  ## scheduler会把Pod调度到node3
+>  - node3: 700m - cpu  
 >
->  Pod可调度到哪个节点？
+>答案：scheduler会把Pod调度到node3
 
 
 
 
 
-问题2：
+问题2：Pod可调度到哪个节点？
 
-> Pod： c1 = request: 200m     **init-c2**->request: **300m**      init-c3->request:100m
 >
 >  Node:  
 >
@@ -962,95 +1014,26 @@ containers：resources来做资源限定。
 > - node2: 500m
 > - node3: 700m
 >
-> Pod可以调度到哪个节点
-
-```yaml
-      initContainers: ## 初始化会结束。前面的执行完执行后面
-      - name:  init-01 #request-cpu: 300m
-        image:  "busybox"
-        command: ["sleep","3600"] 
-      - name:  init-02 #request-cpu: 100m
-        image:  "busybox"
-        command: ["sleep","3600"] 
-      containers:  ## Pod启动以后所有容器都是运行的。（总量）
-      - name:  taint-haha  #request-cpu: 200m
-        image:  "busybox"
-        command: ["sleep","3600"] 
-node1,2,3都可以执行这个Pod
-```
+>       initContainers: ## 初始化容器按顺序执行，执行完会结束。前面的执行完执行后面
+>       - name:  init-01 #request-cpu: 300m
+>         image:  "busybox"
+>         command: ["sleep","3600"] 
+>       - name:  init-02 #request-cpu: 100m
+>         image:  "busybox"
+>         command: ["sleep","3600"] 
+>       containers:  ## Pod启动以后所有容器都是运行的。（总量）
+>       - name:  taint-haha  #request-cpu: 200m
+>         image:  "busybox"
+>         command: ["sleep","3600"] 
+> 
+> 答案：node1,2,3都可以执行这个Pod
 
 
+## 3、k8s维护命令
 
 
+1、drain 排空 ：Drain node in preparation for maintenance（为维护准备排空节点）：驱逐节点上的所有Pod资源
 
-## 2、命令行
+2、cordon        Mark node as unschedulable :  `kubectl cordon k8s-node1`
 
-```yaml
-Basic Commands (Beginner):
-  create        Create a resource from a file or from stdin.
-  expose        Take a replication controller, service, deployment or pod and expose xx
-  run           Run a particular image on the cluster
-  set           Set specific features on objects
-
-Basic Commands (Intermediate):
-  explain       Documentation of resources
-  get           Display one or many resources
-  edit          Edit a resource on the server
-  delete        Delete resources by filenames, stdin, resources and names, or by resources
-
-Deploy Commands:
-  rollout       Manage the rollout of a resource
-  scale         Set a new size for a Deployment, ReplicaSet or Replication Controller
-  autoscale     Auto-scale a Deployment, ReplicaSet, StatefulSet, or ReplicationController
-
-Cluster Management Commands:
-  certificate   Modify certificate resources.
-  cluster-info  Display cluster info
-  top           Display Resource (CPU/Memory) usage.
-  cordon        Mark node as unschedulable
-  #  打上默认污点 node.kubernetes.io/unschedulable:NoSchedule
-  # 不可调度只是指，新的Pod不能给当前节点调度，但是不影响其他工作
-  uncordon      Mark node as schedulable
-  # 徐晓默认污点 node.kubernetes.io/unschedulable:NoSchedule-
-  drain         Drain node in preparation for maintenance
-  ## 排空：驱逐节点上的所有Pod资源。（打NoExecute污点和drain都行）
-  taint         Update the taints on one or more nodes
-
-Troubleshooting and Debugging Commands:
-  describe      Show details of a specific resource or group of resources
-  logs          Print the logs for a container in a pod
-  attach        Attach to a running container
-  exec          Execute a command in a container
-  port-forward  Forward one or more local ports to a pod
-  proxy         Run a proxy to the Kubernetes API server
-  cp            Copy files and directories to and from containers.
-  auth          Inspect authorization
-  debug         Create debugging sessions for troubleshooting workloads and nodes
-
-Advanced Commands:
-  diff          Diff live version against would-be applied version
-  apply         Apply a configuration to a resource by filename or stdin
-  patch         Update field(s) of a resource
-  replace       Replace a resource by filename or stdin
-  wait          Experimental: Wait for a specific condition on one or many resources.
-  kustomize     Build a kustomization target from a directory or URL.
-
-Settings Commands:
-  label         Update the labels on a resource
-  annotate      Update the annotations on a resource
-  completion    Output shell completion code for the specified shell (bash or zsh)
-
-Other Commands:
-  api-resources Print the supported API resources on the server
-  api-versions  Print the supported API versions on the server, in the form of "group/version"
-  config        Modify kubeconfig files
-  plugin        Provides utilities for interacting with plugins.
-  version       Print the client and server version information
-```
-
-
-
-
-
-
-
+3、uncordon      Mark node as schedulable

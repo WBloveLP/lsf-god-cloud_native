@@ -1,3 +1,11 @@
+# 打污点
+# kubectl taint nodes  k8s-node1 haha=hehe:NoSchedule
+# kubectl taint nodes  k8s-node2 haha=666:NoSchedule
+
+# 去除污点
+# kubectl taint nodes  k8s-node1 haha=hehe:NoSchedule-
+# kubectl taint nodes  k8s-node2 haha-
+
 apiVersion: v1
 kind: Pod
 metadata:
@@ -34,20 +42,19 @@ spec:
         app:  taint-haha
     spec:
       # initContainers:
-        # Init containers are exactly like regular containers, except:
-          # - Init containers always run to completion.
-          # - Each init container must complete successfully before the next one starts.
-      initContainers:
-      - name:  init-01 #request-cpu: 300m
-        image:  "busybox"
-        command: ["sleep","3600"] 
-      - name:  init-02 #request-cpu: 100m
-        image:  "busybox"
-        command: ["sleep","3600"] 
-      containers:  ## 哪个启动不了，后面的就不能启动
+      # - name:  init-01 #request-cpu: 300m
+      #   image:  "busybox"
+      #   command: ["sleep","3600"] 
+      # - name:  init-02 #request-cpu: 100m
+      #   image:  "busybox"
+      #   command: ["sleep","3600"] 
+      containers: 
       - name:  taint-haha  #request-cpu: 200m
         image:  "busybox"
         command: ["sleep","3600"] 
+      # - name:  taint-hehe  #request-cpu: 100m
+      #   image:  "busybox"
+      #   command: ["sleep","3600"] 
       tolerations: ## 容忍
       - key: "haha"
         operator: "Exists"
