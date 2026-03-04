@@ -4,7 +4,9 @@
     </h1>    
 </center>
 
+
 https://kubernetes.io/zh/docs/concepts/security/controlling-access/
+
 
 ![Kubernetes API 请求处理步骤示意图](assets/access-control-overview.svg)
 
@@ -24,25 +26,27 @@ k8s会认为每个Pod也可以是操作集群的一个用户。给这个用户�
 
 
 
-
-
-
-
-
 # 一、RBAC
 
 什么是RBAC？（基于角色的访问控制）
 
 RBAC API 声明了四种 Kubernetes 对象：`Role、ClusterRole、RoleBinding 和 ClusterRoleBinding`
 
-Role：基于名称空间的角色。可以操作名称空间下的资源
+Role：基于`名称空间`的角色。可以操作名称空间下的资源 ------------------  RoleBinding： 来把一个Role。绑定给一个用户
 
-​	RoleBinding： 来把一个Role。绑定给一个用户
+ClusterRole：基于`集群`的角色。可以操作集群资源 ------------------  ClusterRoleBinding： 来把一个ClusterRole，绑定给一个用户
 
-ClusterRole：基于集群的角色。可以操作集群资源
 
-​	ClusterRoleBinding： 来把一个ClusterRole，绑定给一个用户
 
+
+要启用 RBAC，在启动 API 服务器时将 `--authorization-config` 标志设置为包含 RBAC 授权者的文件【默认已经开启了】
+```sh
+[root@k8s-master manifests]# pwd
+/etc/kubernetes/manifests
+[root@k8s-master manifests]# ls
+etcd.yaml  kube-apiserver.yaml  kube-controller-manager.yaml  kube-scheduler.yaml
+[root@k8s-master manifests]# cat kube-apiserver.yaml 
+```
 
 
 
@@ -52,8 +56,6 @@ ClusterRole：基于集群的角色。可以操作集群资源
 - RBAC 的 *Role* 或 *ClusterRole* 中包含一组代表相关权限的规则。 这些权限是纯粹累加的（不存在拒绝某操作的规则）。
 - Role 总是用来在某个[名称空间](https://kubernetes.io/zh/docs/concepts/overview/working-with-objects/namespaces/) 内设置访问权限；在你创建 Role 时，你必须指定该 Role 所属的名字空间
 - ClusterRole 则是一个集群作用域的资源。这两种资源的名字不同（Role 和 ClusterRole）是因为 Kubernetes 对象要么是名字空间作用域的，要么是集群作用域的， **不可两者兼具。**
-
-> 我们kubeadm部署的apiserver是容器化部署的。默认没有同步机器时间。
 
 ## 1、Role
 
@@ -94,7 +96,7 @@ https://kubernetes.io/zh/docs/reference/access-authn-authz/rbac/#role-examples
 
 
 
-# 四、RoleBinding、ClusterRoleBinding
+# 三、RoleBinding、ClusterRoleBinding
 
 
 
@@ -104,7 +106,7 @@ https://kubernetes.io/zh/docs/reference/access-authn-authz/rbac/#role-examples
 
 
 
-# 五、ServiceAccount
+# 四、ServiceAccount
 
 ## 1、创建ServiceAccount
 

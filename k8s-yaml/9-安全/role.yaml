@@ -4,11 +4,16 @@ metadata:
   namespace: default  ## 所属的名称空间
   name: pod-reader 
 rules: ## 当前角色的规则
-- apiGroups: [""] # "" 标明 core API 组
-  resources: ["pods"] # 能操作所有的pod
+- apiGroups: [""] # "" 代表使用 core API 组 ===> 就是apiVersion信息，现在不用写了，已经统一了，留空即可
+  resources: ["pods"] # 代表能操作所有的pod
   # resourceNames: ["pod-taint","pod-time"] ## 指定只能操作某个名字的资源
-  verbs: ["get", "watch", "list"] # 动词。
+  verbs: ["get", "watch", "list"] # 动词====动作、操作
+
+
+
+  
 ---
+# 不写namespace就代表ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -21,9 +26,3 @@ rules:
 - resources: ["configmaps"]
   apiGroups: [""]
   verbs: ["get", "watch", "list"]
-
-
-
-
-# [create delete deletecollection get list patch update watch]
-
