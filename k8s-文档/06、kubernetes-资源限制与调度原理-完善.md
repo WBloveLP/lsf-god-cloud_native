@@ -263,7 +263,7 @@ https://kubernetes.io/zh/docs/concepts/policy/limit-range/
 - 在一个命名空间中实施对每个 Pod 或 Container 最小和最大的资源使用量的限制。
 - 在一个命名空间中实施对每个 PersistentVolumeClaim 能申请的最小和最大的存储空间大小的限制。
 - 在一个命名空间中实施对一种资源的申请值和限制值的比值的控制。
-- 设置一个命名空间中对计算资源的默认申请/限制值，并且自动的在运行时注入到多个 Container 中。【也就是说：有了LimitRange，如果命名空间下的计算资源 （如 `cpu` 和 `memory`）的配额被启用, 用户就非必须为这些资源设定请求值（request）和约束值（limit）了 】
+- 设置一个命名空间中对计算资源的`默认申请/限制值`，并且自动的在运行时注入到多个 Container 中。【也就是说：有了LimitRange，如果命名空间下的计算资源 （如 `cpu` 和 `memory`）的配额被启用, 用户就`非`必须为这些资源设定请求值（request）和约束值（limit）了 】
 
 
 ### 2、实战
