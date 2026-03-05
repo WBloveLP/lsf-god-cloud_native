@@ -53,6 +53,10 @@ etcd.yaml  kube-apiserver.yaml  kube-controller-manager.yaml  kube-scheduler.yam
 
 # 二、ClusterRole与Role
 
+>如果你希望在namespace内定义角色，应该使用 Role； 如果你希望定义集群范围的角色，应该使用 ClusterRole。
+
+
+
 - RBAC 的 *Role* 或 *ClusterRole* 中包含一组代表相关权限的规则。 这些权限是纯粹累加的（不存在拒绝某操作的规则）。
 - Role 总是用来在某个[名称空间](https://kubernetes.io/zh/docs/concepts/overview/working-with-objects/namespaces/) 内设置访问权限；在你创建 Role 时，你必须指定该 Role 所属的名字空间
 - ClusterRole 则是一个集群作用域的资源。这两种资源的名字不同（Role 和 ClusterRole）是因为 Kubernetes 对象要么是名字空间作用域的，要么是集群作用域的， **不可两者兼具。**
@@ -100,7 +104,7 @@ https://kubernetes.io/zh/docs/reference/access-authn-authz/rbac/#role-examples
 
 
 
-
+https://www.qikqiak.com/k8s-book/docs/30.RBAC.html
 
 
 
@@ -113,14 +117,17 @@ https://kubernetes.io/zh/docs/reference/access-authn-authz/rbac/#role-examples
 - 每个名称空间都会有自己默认的服务账号
   - 空的服务账号。
   - 每个Pod都会挂载这个默认服务账号。
-  - 每个Pod可以自己声明 serviceAccountName： lfy
-  - 特殊Pod（比如动态供应等）需要自己创建SA，并绑定相关的集群Role。给Pod挂载。才能操作
+  - 每个Pod可以自己声明 serviceAccountName
 
-集群几个可用的角色
+
+特殊Pod（比如动态供应等）需要自己创建SA，并绑定相关的角色给Pod挂载。才能操作
+
+
+集群几个可用的角色：
 
 ```yaml
-cluster-admin:  整个集群全部全部权限  *.* ** *
-admin: 很多资源的crud，不包括 直接给api-server发送http请求。/api
+cluster-admin:  整个集群全部全部权限（*.* ** *）
+admin: 很多资源的crud，不包括 直接给api-server发送http请求（/api）
 edit: 所有资源的编辑修改创建等权限
 view: 集群的查看权限
 ```
@@ -222,17 +229,19 @@ kubectl create clusterrolebinding myapp-view-binding --clusterrole=view --servic
 
 步骤：
 
-- 1、创建ServiceAccount、关联相关权限
+- 1、创建ServiceAccount、绑定角色，就拥有了相关权限
 - 2、使用ServiceAccount对应的Secret中的token作为http访问令牌
 - 3、可以参照k8s集群restapi进行操作
 
+  - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/
+  - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pod-v1-core
+  - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#read-operations-pod-v1-core
+    - `比如：GET /api/v1/pods`
+    - 请求头 Authorization: Bearer 自己的token即可
 
 
-请求头 Authorization: Bearer 自己的token即可
 
-
-
-java也可以这样
+Java也可以这样：
 
 ```xml
 <dependency>

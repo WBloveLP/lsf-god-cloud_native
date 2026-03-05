@@ -17,6 +17,7 @@ rules: ## 当前角色的规则
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  # "namespace" 被忽略，因为 ClusterRoles 不受名字空间限制
   name: secret-reader
 rules:
   # 在 HTTP 层面，用来访问 Secret 对象的资源的名称为 "secrets"
