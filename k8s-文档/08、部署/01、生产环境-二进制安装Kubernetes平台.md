@@ -2,62 +2,44 @@
     <h1>自建k8s平台-高可用k8s集群
     </h1></center>
 
+
+
+
 # 一、前置概念与操作
+
+修改：
+开机前修改mac地址
+vi /etc/sysconfig/network-scripts/ifcfg-ens33
+vi /etc/hostname
+reboot
+echo "127.0.0.1   $(hostname)" >> /etc/hosts
+
+查看：
+ip addr
+cat /etc/sysconfig/network-scripts/ifcfg-ens33
+cat /etc/hostname
+cat /etc/hosts
+
 
 ## 1、内核升级
 
 > 3.10内核在大规模集群具有不稳定性
->
 > 内核升级到4.19+
 
 ```sh
 # 查看内核版本
-uname -sr 
-# 0、升级软件包，不升级内核
-yum update -y --exclude=kernel*
+uname -r 
 
-# 1、下载公钥
-rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-rpm -Uvh https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
-# 安装镜像加速
-yum install -y yum-plugin-fastestmirror
-# 3、仓库启用后，列出可用的内核相关包：
-yum --disablerepo="*" --enablerepo="elrepo-kernel" list available 
+# 安装内核
+https://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS/
+手动下载：kernel-lt-5.4.204-1.el7.elrepo.x86_64.rpm
+切换root用户：yum install kernel-lt-5.4.204-1.el7.elrepo.x86_64.rpm
+查看内核启动顺序：awk -F\' '$1=="menuentry " {print $2}' /etc/grub2.cfg
 
-kernel-lt： long term support：长期支持版
-kernel-ml： mainline stable： 主线稳定版
-
-# 4、选择自己的版本进行安装 5.4.119-1.el7.elrepo
-yum --enablerepo=elrepo-kernel install -y kernel-lt
-
-# 5、查看内核
-uname -sr
-#查看内核位置
-awk -F\' '$1=="menuentry " {print $2}' /etc/grub2.cfg
-CentOS Linux 7 Rescue 0a87210b6f6337e79a6611c512e524ce (5.4.119-1.el7.elrepo.x86_64) #第0个
-CentOS Linux (5.4.119-1.el7.elrepo.x86_64) 7 (Core)  ##我们的在第1个
-CentOS Linux (3.10.0-1160.el7.x86_64) 7 (Core)
-CentOS Linux (0-rescue-cc2c86fe566741e6a2ff6d399c5d5daa) 7 (Core)
-
-# 6、重新创建内核配置。
-grub2-mkconfig -o /boot/grub2/grub.cfg
-# 确认内核的位置，修改默认内核即可
-
-# 7、修改使用默认内核
-vi /etc/default/grub
-# 将 GRUB_DEFAULT 设置为 0，代表  GRUB 初始化页面的第一个内核将作为默认内核
-# 再重新整理下内核
-grub2-mkconfig -o /boot/grub2/grub.cfg
-# 8、重开机
-reboot
-
-# 9、检查
-uname -r
+grub2-set-default 0   #设置内核启动顺序
+grub2-mkconfig -o /boot/grub2/grub.cfg  #重新生成 Kernel 配置
+reboot  重启
 ```
-
-在内核4.19+版本nf_conntrack_ipv4已经改为nf_conntrack， 4.18以下使用nf_conntrack_ipv4即可：
-
-sysctl -a。可以查看所有的内核参数
 
 ## 2、k8s集群架构
 
@@ -65,6 +47,11 @@ https://kubernetes.io/zh/docs/tasks/administer-cluster/highly-available-master/
 
 ![ha-master-gce](assets/ha-master-gce.png)
 
+
+
+
+
+![k8s-cluster-install-map](assets/k8s-cluster-install-map.png)
 
 
 k8s集群架构：
@@ -78,19 +65,17 @@ master+node
   - 中文动画： http://www.kailing.pub/raft/index.html
   - 领导选举：Leader Election
   - Log Replication*日志复制。
-  - 一个raft一致性的集群最多允许挂  n/2（不管余数） 台机器  6/2 = 3 （大多数存活【n/2+1】）
+  - 一个基于raft一致性的集群最多允许挂  n/2（不管余数） 台机器   （6/2 = 3都不行，大多数存活【n/2+1】）
   - 奇数个机器（很快就成功投票）。leader可以多选几轮就能选择出来
-  - 心跳的速度决定集群的一致性速度。50ms
-  - 只要大多数节点，直接告诉leader，节点日志已经生成了。leader认为此次操作成功
+  - 心跳的速度决定集群的一致性速度。
+  - 只要大多数【n/2+1】节点，直接告诉leader，节点日志已经生成了。leader认为此次操作成功
   - P分区容错
-    - 一旦分区，就产生脑裂问题。出现多个领导
+    - 一旦分区，就产生脑裂问题，出现多个领导
     - 会听从多数节点服从的领导
 
 
 
 k8s集群里面除了**etcd**都是无状态的。
-
-
 
 
 
@@ -566,14 +551,6 @@ vi /etc/security/limits.conf
 ```
 
 
-
-```sh
-#为了方便以后操作配置ssh免密连接，master1运行
-ssh-keygen -t rsa
-
-for i in k8s-master1 k8s-master2 k8s-master3 k8s-node1 k8s-node2 k8s-node3;do ssh-copy-id -i .ssh/id_rsa.pub $i;done
-#
-```
 
 
 
