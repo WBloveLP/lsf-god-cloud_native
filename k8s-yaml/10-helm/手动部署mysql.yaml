@@ -8,8 +8,7 @@ spec:
   selector:
     matchLabels:
       app: mysql 
-  replicas: 2 # by default is 1 。默认也是负载均衡
-  ### 自己连进这两个mysql。才能主从同步
+  replicas: 2 # 默认的负载均衡，一个Service，一会连这个Pod，一会连那个Pod
   template:
     metadata:
       labels:
@@ -71,3 +70,9 @@ spec:
     port: 3306 ## service端口
     targetPort:  3306 ## pod端口
     protocol: TCP
+
+
+### 目前部署的这两个mysql，自己连进去操作才能主从同步  ###
+
+# mysql的负载均衡得至少部署两个Service网络，一个连主，一个连从
+# 【给外部NodePort两个Service网络（考虑一下Ingress），内部两个Head-less Service网络（方便集群内部通信）】
