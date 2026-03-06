@@ -1,3 +1,4 @@
+**/.git/**
 *.sock
 # Jar文件
 *.jar
