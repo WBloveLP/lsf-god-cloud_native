@@ -878,7 +878,7 @@ vi /etc/kubernetes/pki/ca-csr.json
 - **C(Country Name）**
   - C是指国家名称，这里用的是两位大写的国家代码，中国是CN。
 
-### 4、生成证书
+### 4、生成证书【可以先不做】
 
 **生成ca证书和私钥**
 
@@ -1286,9 +1286,6 @@ etcdctl get hello
 ### 1、K8s离线安装包
 
 https://github.com/kubernetes/kubernetes  找到changelog对应版本
-
-![1621403784124](../05%E3%80%81others/assets/1621403784124.png)
-
 
 
 ```sh
@@ -1727,7 +1724,7 @@ done
 >   ![1621488258001](assets/1621488258001.png)
 
 
-自己搞一台 k8s-ha-master-lb 的机器，用nginx负载均衡6443端口
+>自己搞一台 k8s-ha-master-lb 的机器，用nginx负载均衡6443端口
 
 
 开机前修改mac地址
@@ -2299,7 +2296,7 @@ evictionHard:
   memory.available: 100Mi
   nodefs.available: 10%
   nodefs.inodesFree: 5%
-evictionPressureTransitionPeriod: 5m0s  #缩小相应的配置
+evictionPressureTransitionPeriod: 5m0s  #可以调整相应的配置
 failSwapOn: true
 fileCheckFrequency: 20s
 hairpinMode: promiscuous-bridge
