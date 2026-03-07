@@ -224,7 +224,7 @@ CFSSL 组成:
 
 
 
-安装【一台机器安装，生成后复制到其他机器】：去官网下载`cfssl-certinfo_linux-amd64`  `cfssljson_linux-amd64`  `cfssl_linux-amd64`这三个组件
+安装【一台机器安装】：去官网下载`cfssl-certinfo_linux-amd64`  `cfssljson_linux-amd64`  `cfssl_linux-amd64`这三个组件
 
 ```sh
 # 下载核心组件
@@ -511,7 +511,7 @@ hostnamectl set-hostname k8s-xxx
 
 
 #集群规划
-k8s-master1  k8s-master2  k8s-master3 k8s-master-lb k8s-node01  k8s-node02 ... k8s-nodeN
+k8s-master1  k8s-ha-master2  k8s-ha-master3 k8s-master-lb k8s-node01  k8s-node02 ... k8s-nodeN
 
 # 每个机器准备域名
 vi /etc/hosts
@@ -736,14 +736,17 @@ https://kubernetes.io/zh/docs/setup/best-practices/certificates/#%E9%9B%86%E7%BE
 
 学习证书： https://www.cnblogs.com/technology178/p/14094375.html
 
-## 3、证书工具准备
+## 3、证书工具准备【一台机器安装】
 
 
 ```sh
-# 准备文件夹存放所有证书信息。看看kubeadm 如何组织有序的结构的
-# 三个节点都执行
+# 准备文件夹存放所有证书信息。
+# 给所有master节点：mkdir -p /etc/kubernetes/pki
+
 mkdir -p /etc/kubernetes/pki
 ```
+
+看看kubeadm 如何组织有序的结构的：
 
 ![1621419733778](assets/1621419733778.png)
 
@@ -880,6 +883,7 @@ vi /etc/kubernetes/pki/ca-csr.json
 **生成ca证书和私钥**
 
 ```sh
+# 初始化CA
 cfssl gencert -initca ca-csr.json | cfssljson -bare ca -
 # ca.csr ca.pem(ca公钥) ca-key.pem(ca私钥,妥善保管)
 ```
@@ -890,11 +894,16 @@ cfssl gencert -initca ca-csr.json | cfssljson -bare ca -
 
 ### 5、预习 - k8s集群是如何使用证书的
 
-https://kubernetes.io/zh/docs/setup/best-practices/certificates/#集群是如何使用证书的
+https://kubernetes.io/zh/docs/setup/best-practices/certificates/ #集群是如何使用证书的
 
 
 
 ## 4、etcd高可用搭建
+
+
+>etcd的搭建配置参考：https://etcd.io/docs/v3.4/op-guide/hardware/
+
+
 
 ### 1、etcd文档
 
@@ -904,17 +913,19 @@ etcd构建：https://etcd.io/docs/v3.4/dl-build/   参照etcd-k8s集群量规划
 
 etcd部署：https://etcd.io/docs/v3.4/op-guide/  参照部署手册，学习etcd配置和集群部署
 
+
 ### 2、下载etcd
 
 ```sh
-# 给所有master节点，发送etcd包准备部署etcd高可用
+# master1执行
 wget https://github.com/etcd-io/etcd/releases/download/v3.4.16/etcd-v3.4.16-linux-amd64.tar.gz
 
+
 ## 复制到其他节点
-for i in k8s-master1 k8s-master2 k8s-master3;do scp etcd-* root@$i:/root/;done
+for i in k8s-ha-master1 k8s-ha-master2 k8s-ha-master3;do scp etcd-* root@$i:/root/;done
 
 
-## 解压到 /usr/local/bin
+## 每个master运行 # 解压到 /usr/local/bin
 tar -zxvf etcd-v3.4.16-linux-amd64.tar.gz --strip-components=1 -C /usr/local/bin etcd-v3.4.16-linux-amd64/etcd{,ctl}
 
 
@@ -926,13 +937,11 @@ etcdctl #只要有打印就ok
 
 
 
-### 3、etcd证书
+### 3、etcd证书【master1执行】
 
 https://etcd.io/docs/next/op-guide/hardware/#small-cluster  安装参考
 
-```sh
-#生成etcd证书
-```
+生成etcd证书【所有的.json都放在/etc/kubernetes/pki目录下管理】
 
 **etcd-ca-csr.json**
 
@@ -962,6 +971,7 @@ https://etcd.io/docs/next/op-guide/hardware/#small-cluster  安装参考
 
 ```sh
 # 生成etcd根ca证书
+mkdir -p /etc/kubernetes/pki/etcd
 cfssl gencert -initca etcd-ca-csr.json | cfssljson -bare /etc/kubernetes/pki/etcd/ca -
 ```
 
@@ -972,6 +982,13 @@ cfssl gencert -initca etcd-ca-csr.json | cfssljson -bare /etc/kubernetes/pki/etc
 **etcd-itdachang-csr.json**
 
 ```json
+// 注意：hosts用自己的主机名和ip
+// 也可以在签发的时候再加上 -hostname=127.0.0.1,k8s-master1,k8s-ha-master2,k8s-ha-master3,
+// 可以指定受信的主机列表
+//    "hosts": [
+//        "k8s-master1",
+//        "www.example.net"
+//    ],
 {
     "CN": "etcd-itdachang",
     "key": {
@@ -980,12 +997,12 @@ cfssl gencert -initca etcd-ca-csr.json | cfssljson -bare /etc/kubernetes/pki/etc
     },
     "hosts": [  
         "127.0.0.1",
-        "k8s-master1",
-        "k8s-master2",
-        "k8s-master3",
-        "192.168.0.10",
-        "192.168.0.11",
-        "192.168.0.12"
+        "k8s-ha-master1",
+        "k8s-ha-master2",
+        "k8s-ha-master3",
+        "192.168.10.149",
+        "192.168.10.148",
+        "192.168.10.147"
     ],
     "names": [
         {
@@ -998,13 +1015,6 @@ cfssl gencert -initca etcd-ca-csr.json | cfssljson -bare /etc/kubernetes/pki/etc
     ]
 }
 
-// 注意：hosts用自己的主机名和ip
-// 也可以在签发的时候再加上 -hostname=127.0.0.1,k8s-master1,k8s-master2,k8s-master3,
-// 可以指定受信的主机列表
-//    "hosts": [
-//        "k8s-master1",
-//        "www.example.net"
-//    ],
 ```
 
 ```sh
@@ -1014,14 +1024,13 @@ cfssl gencert \
    -ca-key=/etc/kubernetes/pki/etcd/ca-key.pem \
    -config=/etc/kubernetes/pki/ca-config.json \
    -profile=etcd \
-   etcd-itdachang-csr.json | cfssljson -bare /etc/kubernetes/pki/etcd/etcd
+    etcd-itdachang-csr.json | cfssljson -bare /etc/kubernetes/pki/etcd/etcd
 ```
 
 
 
 > 把生成的etcd证书，复制给其他机器
->
-> for i in k8s-master2 k8s-master3;do scp -r /etc/kubernetes/pki/etcd root@$i:/etc/kubernetes/pki;done
+> for i in k8s-ha-master2 k8s-ha-master3;do scp -r /etc/kubernetes/pki/etcd root@$i:/etc/kubernetes/pki;done
 
 
 
@@ -1035,8 +1044,9 @@ etcd高可用安装示例： https://etcd.io/docs/v3.4/op-guide/clustering/
 
 > 为了保证启动配置一致性，我们编写etcd配置文件，并将etcd做成service启动
 
+
+etcd yaml示例：
 ```yaml
-# etcd yaml示例。
 # This is the configuration file for the etcd server.
 
 # Human-readable name for this member.
@@ -1145,29 +1155,29 @@ mkdir -p /etc/etcd
 ```
 
 
-
+我们的yaml：
 ```yaml
 vi /etc/etcd/etcd.yaml
-# 我们的yaml
-name: 'etcd-master3'  #每个机器可以写自己的域名,不能重复
+
+name: 'etcd-master3'  #不能重复
 data-dir: /var/lib/etcd
 wal-dir: /var/lib/etcd/wal
 snapshot-count: 5000
 heartbeat-interval: 100
 election-timeout: 1000
 quota-backend-bytes: 0
-listen-peer-urls: 'https://192.168.0.12:2380'  # 本机ip+2380端口，代表和集群通信
-listen-client-urls: 'https://192.168.0.12:2379,http://127.0.0.1:2379' #改为自己的
+listen-peer-urls: 'https://192.168.10.147:2380'  # 本机ip+2380端口，代表和集群通信
+listen-client-urls: 'https://192.168.10.147:2379,http://127.0.0.1:2379' #改为自己的
 max-snapshots: 3
 max-wals: 5
 cors:
-initial-advertise-peer-urls: 'https://192.168.0.12:2380' #自己的ip
-advertise-client-urls: 'https://192.168.0.12:2379'  #自己的ip
+initial-advertise-peer-urls: 'https://192.168.10.147:2380' #自己的ip
+advertise-client-urls: 'https://192.168.10.147:2379'  #自己的ip
 discovery:
 discovery-fallback: 'proxy'
 discovery-proxy:
 discovery-srv:
-initial-cluster: 'etcd-master1=https://192.168.0.10:2380,etcd-master2=https://192.168.0.11:2380,etcd-master3=https://192.168.0.12:2380' #这里不一样
+initial-cluster: 'etcd-master1=https://192.168.10.149:2380,etcd-master2=https://192.168.10.148:2380,etcd-master3=https://192.168.10.147:2380' #这里不一样
 initial-cluster-token: 'etcd-k8s-cluster'
 initial-cluster-state: 'new'
 strict-reconfig-check: false
@@ -1233,9 +1243,6 @@ Alias=etcd3.service
 # 加载&开机启动
 systemctl daemon-reload
 systemctl enable --now etcd
-
-# 启动有问题,使用 journalctl -u 服务名排查
-journalctl -u etcd
 ```
 
 
@@ -1243,14 +1250,17 @@ journalctl -u etcd
 > 测试etcd访问
 
 ```sh
+#如果没有环境变量就需要如下方式调用
+etcdctl --endpoints=$ENDPOINTS --cacert=/etc/kubernetes/pki/etcd/ca.pem --cert=/etc/kubernetes/pki/etcd/etcd.pem --key=/etc/kubernetes/pki/etcd/etcd-key.pem member list --write-out=table
 # 查看etcd集群状态
-etcdctl --endpoints="192.168.0.10:2379,192.168.0.11:2379,192.168.0.12:2379" --cacert=/etc/kubernetes/pki/etcd/ca.pem --cert=/etc/kubernetes/pki/etcd/etcd.pem --key=/etc/kubernetes/pki/etcd/etcd-key.pem  endpoint status --write-out=table
+etcdctl --endpoints="192.168.10.149:2379,192.168.10.148:2379,192.168.10.147:2379" --cacert=/etc/kubernetes/pki/etcd/ca.pem --cert=/etc/kubernetes/pki/etcd/etcd.pem --key=/etc/kubernetes/pki/etcd/etcd-key.pem  endpoint status --write-out=table
+
 
 # 以后测试命令
 export ETCDCTL_API=3
-HOST_1=192.168.0.10
-HOST_2=192.168.0.11
-HOST_3=192.168.0.12
+HOST_1=192.168.10.149
+HOST_2=192.168.10.148
+HOST_3=192.168.10.147
 ENDPOINTS=$HOST_1:2379,$HOST_2:2379,$HOST_3:2379
 
 ## 导出环境变量，方便测试，参照https://github.com/etcd-io/etcd/tree/main/etcdctl
@@ -1259,14 +1269,14 @@ export ETCDCTL_CACERT=/etc/kubernetes/pki/etcd/ca.pem
 export ETCDCTL_CERT=/etc/kubernetes/pki/etcd/etcd.pem
 export ETCDCTL_KEY=/etc/kubernetes/pki/etcd/etcd-key.pem
 export ETCDCTL_ENDPOINTS=$HOST_1:2379,$HOST_2:2379,$HOST_3:2379
-# 自动用环境变量定义的证书位置
+## 自动用环境变量定义的证书位置
+etcdctl  member list
 etcdctl  member list --write-out=table
 
-#如果没有环境变量就需要如下方式调用
-etcdctl --endpoints=$ENDPOINTS --cacert=/etc/kubernetes/pki/etcd/ca.pem --cert=/etc/kubernetes/pki/etcd/etcd.pem --key=/etc/kubernetes/pki/etcd/etcd-key.pem member list --write-out=table
 
-
-## 更多etcdctl命令，https://etcd.io/docs/v3.4/demo/#access-etcd
+# 更多etcdctl命令，https://etcd.io/docs/v3.4/demo/#access-etcd
+etcdctl put hello "world"
+etcdctl get hello
 ```
 
 
@@ -1282,7 +1292,7 @@ https://github.com/kubernetes/kubernetes  找到changelog对应版本
 
 
 ```sh
-# 下载k8s包
+# 下载k8s包【1台机器下载】
 wget https://dl.k8s.io/v1.21.1/kubernetes-server-linux-amd64.tar.gz
 ```
 
@@ -1291,8 +1301,8 @@ wget https://dl.k8s.io/v1.21.1/kubernetes-server-linux-amd64.tar.gz
 ### 2、master节点准备
 
 ```sh
-# 把kubernetes把复制给master所有节点
-for i in k8s-master1 k8s-master2 k8s-master3  k8s-node1 k8s-node2 k8s-node3;do scp kubernetes-server-* root@$i:/root/;done
+# 把kubernetes把复制给所有节点
+for i in k8s-ha-master1 k8s-ha-master2 k8s-ha-master3  k8s-ha-node1 k8s-ha-node2 k8s-ha-node3;do scp kubernetes-server-* root@$i:/root/;done
 ```
 
 ```sh
@@ -1301,61 +1311,21 @@ tar -xvf kubernetes-server-linux-amd64.tar.gz  --strip-components=3 -C /usr/loca
 
 
 #master需要全部组件，node节点只需要 /usr/local/bin kubelet、kube-proxy
+tar -xvf kubernetes-server-linux-amd64.tar.gz  --strip-components=3 -C /usr/local/bin kubernetes/server/bin/kube{let,-proxy}
+
+
 ```
 
 
 
 ### 3、apiserver 证书生成
 
-#### 1、apiserver-csr.json 
-
-```json
-//10.96.0. 为service网段。可以自定义 如： 66.66.0.1
-// 192.168.0.250： 是我准备的负载均衡器地址（负载均衡可以自己搭建，也可以购买云厂商lb。）
-{
-    "CN": "kube-apiserver",
-    "hosts": [
-      "10.96.0.1",
-      "127.0.0.1",
-      "192.168.0.250",
-      "192.168.0.10",
-      "192.168.0.11",
-      "192.168.0.12",
-      "192.168.0.13",
-      "192.168.0.14",
-      "192.168.0.15",
-      "192.168.0.16",
-      "kubernetes",
-      "kubernetes.default",
-      "kubernetes.default.svc",
-      "kubernetes.default.svc.cluster",
-      "kubernetes.default.svc.cluster.local"
-    ],
-    "key": {
-        "algo": "rsa",
-        "size": 2048
-    },
-    "names": [
-        {
-            "C": "CN",
-            "L": "BeiJing",
-            "ST": "BeiJing",
-            "O": "Kubernetes",
-            "OU": "Kubernetes"
-        }
-    ]
-}
-
-```
 
 
-
-#### 2、生成apiserver证书
+#### 0、生成CA机构
 
 ```sh
-# 192.168.0.是k8s service的网段，如果说需要更改k8s service网段，那就需要更改192.168.0.1，
-# 如果不是高可用集群，10.103.236.236为Master01的IP
-#先生成CA机构
+# 先生成CA机构
 vi ca-csr.json
 {
   "CN": "kubernetes",
@@ -1379,10 +1349,53 @@ vi ca-csr.json
 
 
 cfssl gencert -initca ca-csr.json | cfssljson -bare ca -
-
-cfssl gencert   -ca=/etc/kubernetes/pki/ca.pem   -ca-key=/etc/kubernetes/pki/ca-key.pem   -config=/etc/kubernetes/pki/ca-config.json   -profile=kubernetes   apiserver-csr.json | cfssljson -bare /etc/kubernetes/pki/apiserver
 ```
 
+
+
+#### 1、apiserver-csr.json 【一样放在/etc/kubernetes/pki目录下】
+
+```json
+// 10.96.0. 为service网段。可以自定义 如： 66.66.0.1
+// 192.168.10.250： 是我准备的负载均衡器地址（负载均衡可以自己搭建，也可以购买云厂商lb。）
+{
+    "CN": "kube-apiserver",
+    "hosts": [
+      "10.96.0.1",
+      "127.0.0.1",
+      "192.168.10.250",
+      "192.168.10.149",
+      "192.168.10.148",
+      "192.168.10.147",
+      "192.168.10.146",
+      "192.168.10.145",
+      "192.168.10.144",
+      "kubernetes",
+      "kubernetes.default",
+      "kubernetes.default.svc",
+      "kubernetes.default.svc.cluster",
+      "kubernetes.default.svc.cluster.local"
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "L": "BeiJing",
+            "ST": "BeiJing",
+            "O": "Kubernetes",
+            "OU": "Kubernetes"
+        }
+    ]
+}
+
+```
+
+```sh
+cfssl gencert   -ca=/etc/kubernetes/pki/ca.pem   -ca-key=/etc/kubernetes/pki/ca-key.pem   -config=/etc/kubernetes/pki/ca-config.json   -profile=kubernetes   apiserver-csr.json | cfssljson -bare /etc/kubernetes/pki/apiserver
+```
 
 
 ### 4、front-proxy证书生成
@@ -1390,10 +1403,11 @@ cfssl gencert   -ca=/etc/kubernetes/pki/ca.pem   -ca-key=/etc/kubernetes/pki/ca-
 https://kubernetes.io/zh/docs/tasks/extend-kubernetes/configure-aggregation-layer/
 
 他是apiserver聚合层，后来支持CRD(自定义的资源文件)的
+```
+  apiVersion: xxx
 
-apiVersion: xxx
-
-kind: HelloDaChang  --- CRD --- front-proxy
+  kind: HelloDaChang  --- CRD --- front-proxy
+```
 
 > 注意：front-proxy不建议用新的CA机构签发证书，可能导致通过他代理的组件如metrics-server权限不可用。
 >
@@ -1489,12 +1503,12 @@ cfssl gencert \
 #### 3、生成配置
 
 ```sh
-# 注意，如果不是高可用集群，192.168.0.250:6443改为master01的地址，6443为apiserver的默认端口
+# 注意，如果不是高可用集群，192.168.10.250:6443改为master01的地址，6443为apiserver的默认端口
 # set-cluster：设置一个集群项，
 kubectl config set-cluster kubernetes \
      --certificate-authority=/etc/kubernetes/pki/ca.pem \
      --embed-certs=true \
-     --server=https://192.168.0.250:6443 \
+     --server=https://192.168.10.250:6443 \
      --kubeconfig=/etc/kubernetes/controller-manager.conf
 
 # 设置一个环境项，一个上下文
@@ -1562,12 +1576,12 @@ cfssl gencert \
 #### 3、生成配置
 
 ```sh
-# 注意，如果不是高可用集群，192.168.0.250:6443 改为master01的地址，6443是api-server默认端口
+# 注意，如果不是高可用集群，192.168.10.250:6443 改为master01的地址，6443是api-server默认端口
 
 kubectl config set-cluster kubernetes \
      --certificate-authority=/etc/kubernetes/pki/ca.pem \
      --embed-certs=true \
-     --server=https://192.168.0.250:6443 \
+     --server=https://192.168.10.250:6443 \
      --kubeconfig=/etc/kubernetes/scheduler.conf
 
 
@@ -1631,11 +1645,11 @@ cfssl gencert \
 #### 3、生成配置
 
 ```sh
-# 注意，如果不是高可用集群，192.168.0.250:6443改为master01的地址，6443为apiserver的默认端口
+# 注意，如果不是高可用集群，192.168.10.250:6443改为master01的地址，6443为apiserver的默认端口
 kubectl config set-cluster kubernetes \
 --certificate-authority=/etc/kubernetes/pki/ca.pem \
 --embed-certs=true \
---server=https://192.168.0.250:6443 \
+--server=https://192.168.10.250:6443 \
 --kubeconfig=/etc/kubernetes/admin.conf
 
 
@@ -1675,7 +1689,7 @@ openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.p
 
 ```sh
 # 在master1上执行
-for NODE in k8s-master2 k8s-master3
+for NODE in k8s-ha-master2 k8s-ha-master3
 do
 	for FILE in admin.conf controller-manager.conf scheduler.conf
 	do
@@ -1713,19 +1727,82 @@ done
 >   ![1621488258001](assets/1621488258001.png)
 
 
+自己搞一台 k8s-ha-master-lb 的机器，用nginx负载均衡6443端口
 
+
+开机前修改mac地址
+
+
+vi /etc/sysconfig/network-scripts/ifcfg-ens33  静态IP  192.168.10.250
+
+```
+BOOTPROTO="static"           //修改：dhcp修改为static
+
+IPADDR="192.168.10.250"           //新增：配置静态IP地址
+GATEWAY="192.168.10.2"     //新增：配置网关  查看网关 ip route show default via 后的IP地址就是当前系统的默认网关
+NETMASK="255.255.255.0"     //新增：配置子网掩码
+```
+
+vi /etc/hostname  ====> k8s-ha-master-lb
+
+
+vi /etc/hosts
+127.0.0.1   k8s-ha-master-lb
+192.168.10.149 k8s-ha-master1
+192.168.10.148 k8s-ha-master2
+192.168.10.147 k8s-ha-master3
+192.168.10.146 k8s-ha-node1
+192.168.10.145 k8s-ha-node2
+192.168.10.144 k8s-ha-node3
+192.168.10.250 k8s-ha-master-lb 
+
+systemctl stop firewalld
+systemctl disable firewalld
+
+reboot
+
+查看：
+ip addr
+cat /etc/sysconfig/network-scripts/ifcfg-ens33
+cat /etc/hostname
+cat /etc/hosts
+
+
+#随便启动一个nginx，目的是复制出配置文件
+docker run -d -p 80:80 --rm  --name mynginx  nginx
+docker container cp mynginx:/etc/nginx .  #别忘了后面的.
+在拷贝出来的nginx.conf最后添加
+stream {
+   upstream k8s-apiserver {
+     server 192.168.10.147:6443;
+     server 192.168.10.148:6443;
+     server 192.168.10.149:6443;
+   }
+   server {
+     listen 6443;
+     proxy_pass k8s-apiserver;
+   }
+}
+
+mkdir -p /etc/nginx/
+mv nginx.conf /etc/nginx/
+
+mkdir -p /var/log/nginx
+
+docker stop nginx
+
+docker run -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf -v /var/log/nginx:/var/log/nginx  -d --name nginxfork8s -p 80:80 -p 6443:6443  --restart=always  nginx
 
 
 ## 7、组件启动
 
 ### 1、所有master执行
 
-```yaml
+```sh
 mkdir -p /etc/kubernetes/manifests/ /etc/systemd/system/kubelet.service.d /var/lib/kubelet /var/log/kubernetes
 
-
-#三个master节点kube-xx相关的程序都在 /usr/local/bin
-for NODE in k8s-master2 k8s-master3
+#接下来把master1生成的所有证书全部发给master2,master3
+for NODE in k8s-ha-master2 k8s-ha-master3
 do
 	scp -r /etc/kubernetes/* root@$NODE:/etc/kubernetes/
 done
@@ -1733,7 +1810,6 @@ done
 
 
 
-> 接下来把master1生成的所有证书全部发给master2,master3
 
 
 
@@ -1743,7 +1819,7 @@ done
 
 所有Master节点创建`kube-apiserver.service`，
 
->  注意，如果不是高可用集群，192.168.0.250改为master01的地址
+>  注意，如果不是高可用集群，192.168.10.250改为master01的地址
 >
 > 以下文档使用的k8s service网段为`10.96.0.0/16`，该网段不能和宿主机的网段、Pod网段的重复
 >
@@ -1770,10 +1846,10 @@ ExecStart=/usr/local/bin/kube-apiserver \
       --bind-address=0.0.0.0  \
       --secure-port=6443  \
       --insecure-port=0  \
-      --advertise-address=192.168.0.10 \
+      --advertise-address=192.168.10.149 \
       --service-cluster-ip-range=10.96.0.0/16  \
       --service-node-port-range=30000-32767  \
-      --etcd-servers=https://192.168.0.10:2379,https://192.168.0.11:2379,https://192.168.0.12:2379 \
+      --etcd-servers=https://192.168.10.149:2379,https://192.168.10.148:2379,https://192.168.10.147:2379 \
       --etcd-cafile=/etc/kubernetes/pki/etcd/ca.pem  \
       --etcd-certfile=/etc/kubernetes/pki/etcd/etcd.pem  \
       --etcd-keyfile=/etc/kubernetes/pki/etcd/etcd-key.pem  \
@@ -1833,7 +1909,7 @@ systemctl status kube-apiserver
 
 
 ```sh
-# 所有节点执行
+# 所有master节点执行
 vi /usr/lib/systemd/system/kube-controller-manager.service
 
 ## --cluster-cidr=196.16.0.0/16 ： 为Pod的网段。修改成自己想规划的网段
@@ -1877,7 +1953,6 @@ WantedBy=multi-user.target
 
 ```sh
 # 所有master节点执行
-systemctl daemon-reload
 
 systemctl daemon-reload && systemctl enable --now kube-controller-manager
 
@@ -1924,7 +1999,6 @@ WantedBy=multi-user.target
 #### 2、启动
 
 ```sh
-systemctl daemon-reload
 
 systemctl daemon-reload && systemctl enable --now kube-scheduler
 
@@ -1943,7 +2017,7 @@ TLS Bootstrapping原理参照:  https://kubernetes.io/zh/docs/reference/command-
 
 ### 1、master1配置bootstrap
 
-> 注意，如果不是高可用集群，`192.168.0.250:6443`改为master1的地址，6443为apiserver的默认端口
+> 注意，如果不是高可用集群，`192.168.10.250:6443`改为master1的地址，6443为apiserver的默认端口
 
 ```sh
 #准备一个随机token。但是我们只需要16个字符
@@ -1962,7 +2036,7 @@ head -c 8 /dev/urandom | od -An -t x | tr -d ' '
 kubectl config set-cluster kubernetes \
 --certificate-authority=/etc/kubernetes/pki/ca.pem \
 --embed-certs=true \
---server=https://192.168.0.250:6443 \
+--server=https://192.168.10.250:6443 \
 --kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf
 
 #设置秘钥
@@ -1990,7 +2064,7 @@ kubectl config use-context tls-bootstrap-token-user@kubernetes \
 ```sh
 # 只在master1生成，因为生产集群，我们只能让一台机器具有操作集群的权限，这样好控制
 
-mkdir -p /root/.kube ;
+mkdir -p /root/.kube
 cp /etc/kubernetes/admin.conf /root/.kube/config
 ```
 
@@ -2011,7 +2085,7 @@ No resources found
 
 
 ```yaml
-# master准备这个文件 
+# master1准备这个文件 
 vi  /etc/kubernetes/bootstrap.secret.yaml
 
 
@@ -2118,41 +2192,20 @@ kubectl create -f /etc/kubernetes/bootstrap.secret.yaml
 
 > 所有节点的kubelet需要我们引导启动
 
-### 1、发送核心证书到节点
-
-master1节点把核心证书发送到其他节点
-
-```sh
-cd /etc/kubernetes/  #查看所有信息
-
-#执行复制所有令牌操作
-
-for NODE in k8s-master2 k8s-master3 k8s-node1 k8s-node2; do
-     ssh $NODE mkdir -p /etc/kubernetes/pki/etcd
-     for FILE in ca.pem etcd.pem etcd-key.pem; do
-       scp /etc/kubernetes/pki/etcd/$FILE $NODE:/etc/kubernetes/pki/etcd/
-     done
-     for FILE in pki/ca.pem pki/ca-key.pem pki/front-proxy-ca.pem bootstrap-kubelet.conf; do
-       scp /etc/kubernetes/$FILE $NODE:/etc/kubernetes/${FILE}
- done
- done
-```
-
-
-
-### 2、所有节点配置kubelet
 
 ```sh
 # 所有节点创建相关目录
 mkdir -p /var/lib/kubelet /var/log/kubernetes /etc/systemd/system/kubelet.service.d /etc/kubernetes/manifests/
-
-## 所有node节点必须有 kubelet kube-proxy
-for NODE in k8s-master2 k8s-master3 k8s-node3 k8s-node1 k8s-node2; do
-     scp -r /etc/kubernetes/* root@$NODE:/etc/kubernetes/
- done
 ```
 
 
+
+```sh
+#执行复制所有令牌操作
+for NODE in k8s-ha-master2 k8s-ha-master3 k8s-ha-node1 k8s-ha-node2 k8s-ha-node3; do
+     scp -r /etc/kubernetes/* root@$NODE:/etc/kubernetes/
+ done
+```
 
 #### 1、创建kubelet.service
 
@@ -2190,7 +2243,7 @@ Environment="KUBELET_SYSTEM_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/ne
 Environment="KUBELET_CONFIG_ARGS=--config=/etc/kubernetes/kubelet-conf.yml --pod-infra-container-image=registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/pause:3.4.1"
 Environment="KUBELET_EXTRA_ARGS=--node-labels=node.kubernetes.io/node='' "
 ExecStart=
-ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_SYSTEM_ARGS $KUBELET_EXTRA_ARGS
+ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_SYSTEM_ARGS $KUBELET_EXTRA_ARGS --cgroup-driver=systemd
 ```
 
 
@@ -2299,7 +2352,7 @@ systemctl status kubelet
 
 ### 3、kube-proxy配置
 
->  注意，如果不是高可用集群，`192.168.0.250:6443`改为master1的地址，6443改为apiserver的默认端口
+>  注意，如果不是高可用集群，`192.168.10.250:6443`改为master1的地址，6443改为apiserver的默认端口
 
 #### 1、生成kube-proxy.conf
 
@@ -2325,7 +2378,7 @@ K8S_DIR=/etc/kubernetes
 kubectl config set-cluster kubernetes \
 --certificate-authority=/etc/kubernetes/pki/ca.pem \
 --embed-certs=true \
---server=https://192.168.0.250:6443 \
+--server=https://192.168.10.250:6443 \
 --kubeconfig=${K8S_DIR}/kube-proxy.conf
 
 # kube-proxy秘钥设置
@@ -2348,7 +2401,7 @@ kubectl config use-context kubernetes \
 
 ```sh
 #把生成的 kube-proxy.conf 传给每个节点
-for NODE in k8s-master2 k8s-master3 k8s-node1 k8s-node2 k8s-node3; do
+for NODE in k8s-ha-master2 k8s-ha-master3 k8s-ha-node1 k8s-ha-node2 k8s-ha-node3; do
       scp /etc/kubernetes/kube-proxy.conf $NODE:/etc/kubernetes/
  done
 ```
@@ -2443,18 +2496,21 @@ systemctl status kube-proxy
 
 
 
-## 10、部署calico
+## 10、部署calico【master1执行】
+
+>用如下命令代替，不用做## 10、部署calico【master1执行】
+>kubectl apply -f  https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/calico.yaml
+
 
 **可以参照calico私有云部署指南**
 
 ```sh
 # 下载官网calico
 curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o calico.yaml
-## 把这个镜像修改成国内镜像
 
 
 # 修改一些我们自定义的. 修改etcd集群地址
-sed -i 's#etcd_endpoints: "http://<ETCD_IP>:<ETCD_PORT>"#etcd_endpoints: "https://192.168.0.10:2379,https://192.168.0.11:2379,https://192.168.0.12:2379"#g' calico.yaml
+sed -i 's#etcd_endpoints: "http://<ETCD_IP>:<ETCD_PORT>"#etcd_endpoints: "https://192.168.10.149:2379,https://192.168.10.148:2379,https://192.168.10.147:2379"#g' calico.yaml
 
 
 # etcd的证书内容，需要base64编码设置到yaml中
@@ -2471,7 +2527,8 @@ sed -i 's#etcd_ca: ""#etcd_ca: "/calico-secrets/etcd-ca"#g; s#etcd_cert: ""#etcd
 
 # 修改自己的Pod网段 196.16.0.0/16
 POD_SUBNET="196.16.0.0/16"
-sed -i 's@# - name: CALICO_IPV4POOL_CIDR@- name: CALICO_IPV4POOL_CIDR@g; s@#   value: "192.168.0.0/16"@  value: '"${POD_SUBNET}"'@g' calico.yaml
+
+sed -i 's@# - name: CALICO_IPV4POOL_CIDR@- name: CALICO_IPV4POOL_CIDR@g; s@#   value: "196.16.0.0/16"@  value: '"${POD_SUBNET}"'@g' calico.yaml
 # 一定确定自己是否修改好了
 
 #确认calico是否修改好
@@ -2489,10 +2546,15 @@ kubectl apply -f calico.yaml
 
 
 
-## 11、部署coreDNS
+## 11、部署coreDNS【master1执行】
+
+>不用做11、部署coreDNS【master1执行】
+
+calico部署完毕后，再操作。
 
 ```sh
 git clone https://github.com/coredns/deployment.git
+
 cd deployment/kubernetes
 
 #10.96.0.10 改为 service 网段的 第 10 个ip
@@ -2504,24 +2566,54 @@ cd deployment/kubernetes
 ## 13、给机器打上role标签
 
 ```sh
-kubectl label node k8s-master1 node-role.kubernetes.io/master=''
-kubectl label node k8s-master2 node-role.kubernetes.io/master=''
-kubectl label node k8s-master3 node-role.kubernetes.io/master=''
+kubectl label node k8s-ha-master1 node-role.kubernetes.io/master=''
+kubectl label node k8s-ha-master2 node-role.kubernetes.io/master=''
+kubectl label node k8s-ha-master3 node-role.kubernetes.io/master=''
 
-kubectl taints node k8s-master1 
+kubectl label node k8s-ha-master2 node-role.kubernetes.io/worker=''
+kubectl label node k8s-ha-master3 node-role.kubernetes.io/worker=''
+kubectl label node k8s-ha-node3 node-role.kubernetes.io/worker=''
+kubectl label node k8s-ha-node1 node-role.kubernetes.io/worker=''
+kubectl label node k8s-ha-node2 node-role.kubernetes.io/worker=''
+
+
+# 给master1打上污点。二进制部署的集群，默认master是没有污点的，可以任意调度。我们最好给一个master打上污点，保证master最小可用
+kubectl taint nodes k8s-ha-master1 node-role.kubernetes.io/master=:NoSchedule
+
+
+kubectl get node
 ```
 
 
 
 ## 14、集群验证
 
+查看 API Server 的健康状态：在任意 master 上执行 curl -k https://localhost:6443/healthz（如果 API Server 监听在本机），应该返回 ok。
+
+
 > - 验证Pod网络可访问性
 >   - 同名称空间，不同名称空间可以使用 ip 互相访问
 >   - 跨机器部署的Pod也可以互相访问
 > - 验证Service网络可访问性
 >   - 集群机器使用serviceIp可以负载均衡访问
->   - pod内部可以访问service域名  serviceName.namespace
 >   - pod可以访问跨名称空间的service
+
+kubectl get svc,pod -A -owide
+
+节点验证：
+curl 172.18.46.194
+curl 172.18.215.194
+curl 10.96.115.16
+curl 10.96.151.96
+
+进入容器验证
+kubectl exec -it pod/nginx-01-5bd9d6df7b-w7j67 -- /bin/bash
+curl 172.18.46.194
+curl 172.18.215.194
+curl 10.96.115.16
+curl 10.96.151.96
+
+...
 
 ```yaml
 # 部署以下内容进行测试
@@ -2608,21 +2700,6 @@ spec:
 
 
 
-
-```sh
-# 给两个master标识为worker
-kubectl label node k8s-node3 node-role.kubernetes.io/worker=''
-kubectl label node k8s-master3 node-role.kubernetes.io/worker=''
-kubectl label node k8s-node1 node-role.kubernetes.io/worker=''
-kubectl label node k8s-node2 node-role.kubernetes.io/worker=''
-
-# 给master1打上污点。二进制部署的集群，默认master是没有污点的，可以任意调度。我们最好给一个master打上污点，保证master最小可用
-kubectl label node k8s-master3 node-role.kubernetes.io/master=''
-kubectl taint nodes k8s-master1 node-role.kubernetes.io/master=:NoSchedule
-```
-
-
-
 ## 15、接下来
 
 请继续参照，云原生周边整合相关文档继续整合其他项
@@ -2679,7 +2756,7 @@ systemReserved:
 
 验证集群kube-proxy使用ipvs模式工作； 10249是每个节点kube-proxy的metrics信息端口，可以访问/proxyMode或者/metrics等
 
-`curl 127.0.0.1:10249/proxyMode`
+curl 127.0.0.1:10249/proxyMode
 
 
 
