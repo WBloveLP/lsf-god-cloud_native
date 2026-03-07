@@ -43,7 +43,9 @@ reboot  重启
 
 ## 2、k8s集群架构
 
-https://kubernetes.io/zh/docs/tasks/administer-cluster/highly-available-master/
+
+
+![1619076211983](assets/1619076211983.png)
 
 ![ha-master-gce](assets/ha-master-gce.png)
 
@@ -52,6 +54,16 @@ https://kubernetes.io/zh/docs/tasks/administer-cluster/highly-available-master/
 
 
 ![k8s-cluster-install-map](assets/k8s-cluster-install-map.png)
+
+
+>k8s集群里面除了**etcd**都是无状态的。
+
+
+
+![k8scluster-map-etcd-apiserver](assets/k8scluster-map-etcd-apiserver.png)
+
+
+
 
 
 k8s集群架构：
@@ -75,9 +87,6 @@ master+node
 
 
 
-k8s集群里面除了**etcd**都是无状态的。
-
-
 
 
 
@@ -86,33 +95,25 @@ k8s集群里面除了**etcd**都是无状态的。
 ## 3、cfssl使用
 
 > CFSSL是CloudFlare开源的一款PKI/TLS工具。 CFSSL 包含一个命令行工具 和一个用于 签名，验证并且捆绑TLS证书的 HTTP API 服务。 使用Go语言编写。
+>
+>Github 地址： https://github.com/cloudflare/cfssl
+>官网地址： https://pkg.cfssl.org/
 
-Github 地址： https://github.com/cloudflare/cfssl
-官网地址： https://pkg.cfssl.org/
-
-浏览器访问 ： qingcl0uld.com： 用下面人的证书。真正的qingcloud.com证书是被CA机构签名了的。直接加密了一个字段，这个证书是那个网站的。浏览器用这个CA机构的公钥解密这个证书，看能访问那个网站，证书说能访问qingcloud.com；
-
-![img](assets/u=1138484328,1635358857&fm=15&gp=0.jpg)
-
-qingcloud.com：
-
-1、假冒网站直接用qingcloud.com证书。浏览器会按照此**CA机构**给世界暴露的公钥（验钞机（公钥））解密证书看是哪个网站的，如果不符合直接打回
-
-2、自造证书： 浏览器直接提示不安全。（没有注册，联系不到法人）
-
-3、 xxx ，没任何办法。
+浏览器访问 ： qingcl0uld.com： 用下面人的证书。真正的qingcloud.com证书是被CA机构签名了的。直接加密了一个字段证明这个证书是哪个网站的。浏览器用这个CA机构的公钥解密这个证书，看能访问哪个网站，证书说能访问qingcloud.com；
 
 
 
+- 1、假冒网站直接用qingcloud.com证书。浏览器会按照此**CA机构**给世界暴露的公钥（验钞机（公钥））解密证书看是哪个网站的，如果不符合直接打回
+
+- 2、自造证书： 浏览器直接提示不安全。（没有注册，联系不到法人）
 
 
-证书颁发机构：CA机构（私钥+公钥）
 
- 以下的证书  （证书key：私钥   +  证书：公钥：） 加密整个通信过程；
+证书颁发机构：CA机构（CA私钥 + CA公钥）
+
+以下的证书（证书key：私钥   +  证书：公钥：） 加密整个通信过程；
 
 需要使用ca机构的公钥解密证书相关的信息； 
-
-是哪个机构给谁颁发的证书。
 
 
 
@@ -141,7 +142,13 @@ qingcloud.com：
 
 
 
-### 2、简单使用
+### 2、证书颁发步骤
+
+
+
+![证书颁发步骤](assets/证书颁发步骤.png)
+
+
 
 #### 1、创建CA配置文件
 
@@ -205,7 +212,7 @@ ca-config.json  ca.csr  ca-csr.json  ca-key.pem  ca.pem
 
 
 
-### 3、cfssl使用
+### 3、cfssl安装
 
 CFSSL 组成:
 
@@ -217,7 +224,7 @@ CFSSL 组成:
 
 
 
-安装：去官网下载`cfssl-certinfo_linux-amd64`  `cfssljson_linux-amd64`  `cfssl_linux-amd64`这三个组件
+安装【一台机器安装，生成后复制到其他机器】：去官网下载`cfssl-certinfo_linux-amd64`  `cfssljson_linux-amd64`  `cfssl_linux-amd64`这三个组件
 
 ```sh
 # 下载核心组件
@@ -239,7 +246,8 @@ mv cfssl* /usr/bin
 
 ### 4、证书规划
 
-参照图片
+
+需要理解是哪个机构给谁颁发的证书。
 
 
 
@@ -260,10 +268,9 @@ mv cfssl* /usr/bin
 - "server auth"：表示client可以用该 CA 对server提供的证书进行验证；
 - "client auth"：表示server可以用该CA对client提供的证书进行验证；
 
-
+vi ca-config.json：
 
 ```json
-vi ca-config.json
 
 {
     "signing": {
@@ -477,7 +484,7 @@ openssl x509 -in kubernetes.pem -text -noout
 
 ## 1、所有节点基础环境
 
-> 192.168.0.x  ：  为机器的网段
+> 192.168.10.x  ：  为机器的网段
 >
 > 10.96.0.0/16:    为Service网段
 >
@@ -499,7 +506,7 @@ openssl x509 -in kubernetes.pem -text -noout
 #我的机器版本
 cat /etc/redhat-release 
 # CentOS Linux release 7.9.2009 (Core)
-#修改域名，一定不是localhost
+#修改域名
 hostnamectl set-hostname k8s-xxx
 
 
@@ -508,13 +515,13 @@ k8s-master1  k8s-master2  k8s-master3 k8s-master-lb k8s-node01  k8s-node02 ... k
 
 # 每个机器准备域名
 vi /etc/hosts
-192.168.0.10 k8s-master1
-192.168.0.11 k8s-master2
-192.168.0.12 k8s-master3
-192.168.0.13 k8s-node1
-192.168.0.14 k8s-node2
-192.168.0.15 k8s-node3
-192.168.0.250 k8s-master-lb # 非高可用，可以不用这个。这个使用keepalive配置
+192.168.10.149 k8s-ha-master1
+192.168.10.148 k8s-ha-master2
+192.168.10.147 k8s-ha-master3
+192.168.10.146 k8s-ha-node1
+192.168.10.145 k8s-ha-node2
+192.168.10.144 k8s-ha-node3
+192.168.10.250 k8s-ha-master-lb 
 
 ```
 
@@ -558,6 +565,18 @@ vi /etc/security/limits.conf
 #安装后续用的一些工具
 yum install wget git jq psmisc net-tools yum-utils device-mapper-persistent-data lvm2  -y
 ```
+
+
+
+```sh
+##关闭防火墙
+systemctl stop firewalld
+systemctl disable firewalld
+```
+
+
+
+
 
 
 
@@ -648,7 +667,6 @@ lsmod | grep -e ip_vs -e nf_conntrack
 ```
 
 
-
 ### 2、安装Docker
 
 ```sh
@@ -674,13 +692,23 @@ systemctl daemon-reload && systemctl enable --now docker
 ```
 
 
+### 3、ssh免密连接
+
+在master1运行
 
 ```sh
-#也可以自己下载rpm离线包进行安装
-http://mirrors.aliyun.com/docker-ce/linux/centos/7.9/x86_64/stable/Packages/
-yum localinstall xxxx
+#为了方便以后操作配置ssh免密连接
+ssh-keygen -t rsa
+
+for i in k8s-ha-master1 k8s-ha-master2 k8s-ha-master3 k8s-ha-node1 k8s-ha-node2 k8s-ha-node3;do ssh-copy-id -i .ssh/id_rsa.pub $i;done
 ```
 
+以后在机器上就可以直接操作其他机器：
+
+```sh
+#比如
+ssh root@k8s-ha-master3
+```
 
 
 ## 2、PKI
