@@ -6,6 +6,21 @@
 
 
 
+Rook+Ceph【可以使用到任意能力的存储】
+
+- Rook帮我们创建好 StorageClass
+  - pvc只需要指定存储类，Rook自动调用 StorageClass 里面的 Provisioner供应商，接下来对ceph集群操作
+- Ceph
+  - Block：块存储。RWO（ReadWriteOnce）单节点读写【一个Pod操作一个自己专属的读写区】，适用于有状态副本集【例如：mysql的多个实例，每个实例都有自己专属的文件系统，mysql之间如何同步数据是他们程序要做的事情】
+  - Share FS：共享存储（理解为共享目录）。RWX（ReadWriteMany）多节点读写【多个Pod操作同一个存储区，可读可写】，适用于无状态应用【例如：多个程序读取同一个配置】
+  - ......
+  - 总结： 
+    - 无状态应用随意复制多少份，一定要用到RWX能力。
+    - 有状态应用复制任意份，每份都只是读写自己的存储，用到RWO（优先）或者RWX。
+
+
+
+
 # 一、Ceph
 
 https://ceph.io/
@@ -80,19 +95,57 @@ k8s中operator+CRD（CustomResourceDefinitions【k8s自定义资源类型】）�
 
 Rook的operator是我们k8s集群和存储集群之间进行交互的解析器
 
-
-
-CRD：CustomResourceDefinitions (自定义资源)；如：Itdachang
+CRD：CustomResourceDefinitions (自定义资源)；如：LPofDream
 
 operator：这个能处理自定义资源类型
 
 
+```yaml
+apiVersion: apps/v1
+kind: LPofDream
+...
+```
 
-
+部署好了后，kubectl api-resources -n rook-ceph 就可以看到他自定义了很多资源类型
 
 # 三、部署
 
 https://rook.io/docs/rook/v1.6/ceph-quickstart.html
+
+
+## 0、为3个工作node的虚拟机挂磁盘
+
+
+
+完成硬件添加后，**请务必记住不要格式化**，以保持其“原始”状态来满足 Ceph 的要求
+
+1.  **关闭虚拟机**：在添加新硬件前，最好将虚拟机关机或处于关闭状态
+    
+2.  **打开设置**：在 VMware 列表中，右键点击你的目标虚拟机，在弹出菜单中选择 **“设置”** 
+    
+3.  **添加硬件**：在虚拟机设置窗口的底部（或硬件选项卡中），点击 **“添加”** (Add) 按钮
+    
+4.  **选择硬盘**：在添加硬件向导中，选择 **“硬盘”** (Hard Disk)，然后点击“完成”或“下一步”
+    
+    *   在 VMware Workstation 中，你通常需要先选择“硬盘”，然后选择 **“创建新虚拟磁盘”** 
+        
+5.  **配置磁盘参数**：
+    
+    *   **磁盘类型**：保持默认的 **SCSI** 或根据你的系统选择即可，Ceph 对此没有特殊要求
+    *   **磁盘容量**：根据你的存储规划，输入新磁盘的大小，比如 `20GB`
+        
+    *   **磁盘格式（关键步骤）**：在“磁盘空间分配”选项中，请务必选择 **“立即分配所有磁盘空间”** 
+        
+    *   **存储为单个文件**：选择 **“将虚拟磁盘存储为单个文件”** (Store virtual disk as a single file)，这通常能获得更好的性能
+
+6.  **完成**：确认设置无误后，点击“完成”并保存虚拟机配置。
+    
+
+**启动与验证**：启动你的虚拟机。使用 SSH 登录后，运行 `lsblk -f`  命令。你应该能看到一个新的磁盘设备（例如 `/dev/sdb`），并且其 **`FSTYPE` 字段为空**。**切记不要对它运行 `mkfs` 等格式化命令**，这正是 Ceph 所期望的“原始”状态
+
+
+![20260308_215426](assets/20260308_215426.png)
+
 
 ## 1、查看前提条件
 
@@ -120,53 +173,42 @@ dd if=/dev/zero of=/dev/vdc bs=1M status=progress
 > vdb
 > ```
 
-vdb 是可用的
+vdb 是可用的【FSTYPE为空】
 
 
 
-## 2、部署&修改operator
+## 2、修改
+
+
+在master1执行：
 
 ```sh
-cd cluster/examples/kubernetes/ceph
-kubectl create -f crds.yaml -f common.yaml -f operator.yaml #注意修改operator镜像
+git clone --single-branch --branch v1.6.3 https://github.com/rook/rook.git
 
-# verify the rook-ceph-operator is in the `Running` state before proceeding
-kubectl -n rook-ceph get pod
+cd rook/cluster/examples/kubernetes/ceph
 ```
 
 
 
 > 修改operator.yaml
->
-> 把以前的默认镜像换成能用的，如下
-
-```sh
-  # ROOK_CSI_CEPH_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/cephcsi:v3.3.1"
-  # ROOK_CSI_REGISTRAR_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-node-driver-registrar:v2.0.1"
-  # ROOK_CSI_RESIZER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-resizer:v1.0.1"
-  # ROOK_CSI_PROVISIONER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-provisioner:v2.0.4"
-  # ROOK_CSI_SNAPSHOTTER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-snapshotter:v4.0.0"
-  # ROOK_CSI_ATTACHER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-attacher:v3.0.2"
-```
 
 镜像： `rook/ceph:v1.6.3`   换成  `registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/rook-ceph:v1.6.3`
 
 ```yaml
-## 建议修改以下的东西。在operator.yaml里面
-
-ROOK_CSI_CEPH_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/cephcsi:v3.3.1"
-ROOK_CSI_REGISTRAR_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-node-driver-registrar:v2.0.1"
-ROOK_CSI_RESIZER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-resizer:v1.0.1"
-ROOK_CSI_PROVISIONER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-provisioner:v2.0.4"
-ROOK_CSI_SNAPSHOTTER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-snapshotter:v4.0.0"
-ROOK_CSI_ATTACHER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-attacher:v3.0.2"
+  ROOK_CSI_CEPH_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/cephcsi:v3.3.1"
+  ROOK_CSI_REGISTRAR_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-node-driver-registrar:v2.0.1"
+  ROOK_CSI_RESIZER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-resizer:v1.0.1"
+  ROOK_CSI_PROVISIONER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-provisioner:v2.0.4"
+  ROOK_CSI_SNAPSHOTTER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-snapshotter:v4.0.0"
+  ROOK_CSI_ATTACHER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-attacher:v3.0.2"
 ```
 
 
 
-## 3、部署集群
+> 修改`cluster.yaml` 使用我们指定的磁盘当做存储节点即可
 
-> 修改`cluster.yaml`使用我们指定的磁盘当做存储节点即可
+镜像： `ceph/ceph:v15.2.11` 换成 `registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/ceph-ceph:v15.2.11`
+
 
 ```yaml
   storage: # cluster level storage configuration and selection
@@ -175,21 +217,31 @@ ROOK_CSI_ATTACHER_IMAGE: "registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/csi-a
     config:
       osdsPerDevice: "3" #每个设备osd数量
     nodes:
-    - name: "k8s-node3"
+    - name: "k8s-ha-node3"
       devices: 
-      - name: "vdc"
-    - name: "k8s-node1"
+      - name: "sdb"
+    - name: "k8s-ha-node1"
       devices: 
-      - name: "vdc"
-    - name: "k8s-node2"
+      - name: "sdb"
+    - name: "k8s-ha-node2"
       devices: 
-      - name: "vdc"
+      - name: "sdb"
 ```
 
 
 
-镜像： `ceph/ceph:v15.2.11` 换成 `registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/ceph-ceph:v15.2.11`
+## 3、部署
 
+```sh
+
+kubectl create -f crds.yaml -f common.yaml -f operator.yaml
+
+#running后再运行下一步
+watch -n 1 kubectl get pod -n rook-ceph -owide
+
+kubectl create -f cluster.yaml
+
+```
 
 
 ## 4、部署dashboard
@@ -323,7 +375,7 @@ rook-ceph-osd-prepare-node3-w4xyz                    0/2     Completed   0      
 #解决方案。
 #找到自己的operator，删除这个pod，让重新执行
 
-kubectl delete pod rook-ceph-operator-65965c66b5-cxrl8 -n rook-ceph
+kubectl delete pod rook-ceph-operator-65965c66b5-8b9vs -n rook-ceph
 
 
 #rbd：是ceph用来做块存储的
@@ -340,41 +392,26 @@ kubectl delete pod rook-ceph-operator-65965c66b5-cxrl8 -n rook-ceph
 # rook集群的清除，
 ##1、 delete -f 之前的yaml
 
+kubectl delete -f crds.yaml -f common.yaml -f operator.yaml  -f cluster.yaml
+
 ##2、 再执行如下命令
 kubectl -n rook-ceph get cephcluster
 kubectl -n rook-ceph patch cephclusters.ceph.rook.io rook-ceph -p '{"metadata":{"finalizers": []}}' --type=merge
 
+for CRD in $(kubectl get crd -n rook-ceph | awk '/ceph.rook.io/ {print $1}'); do
+    kubectl get -n rook-ceph "$CRD" -o name | \
+    xargs -I {} kubectl patch -n rook-ceph {} --type merge -p '{"metadata":{"finalizers": []}}'
+done
+
 ##3、 清除每个节点的 /var/lib/rook 目录
-
-
-## 顽固的自定义资源删除；
-kubectl -n rook-ceph patch cephblockpool.ceph.rook.io replicapool -p '{"metadata":{"finalizers": []}}' --type=merge
+rm -rf /var/lib/rook
 ```
 
 
 
 
 
-Rook+Ceph；
-
-- Rook帮我们创建好 StorageClass
-  - pvc只需要指定存储类，Rook自动调用 StorageClass 里面的 Provisioner供应商，接下来对ceph集群操作
-- Ceph
-  - Block：块存储。RWO（ReadWriteOnce）单节点读写【一个Pod操作一个自己专属的读写区】，适用于（有状态副本集）
-  - Share FS：共享存储。RWX（ReadWriteMany）多节点读写【多个Pod操作同一个存储区，可读可写】，适用于无状态应用。（文件系统 ）
-  - ......
-  - 总结： 无状态应用随意复制多少份，一定用到RWX能力。有状态应用复制任意份，每份都只是读写自己的存储，用到RWO（优先）或者RWX。
-- 直接通过Rook可以使用到任意能力的存储。
-
-
-
-
-
-
-
-
-
-CRI、CNI、CSI
+## 7、CRI、CNI、CSI
 
 CRI：Container Runtime Interface：容器运行时接口（k8s集群整合容器运行时环境）
 
@@ -387,20 +424,22 @@ CSI：Container Storage Interface：容器存储接口（k8s集群整合存储�
 > kubelet启动一个Pod。CRI、CNI、CSI 起作用的顺序
 >
 > - 启动Pod流程
->   - 每个Pod，都伴随一个Pause容器（沙箱容器）。真正的容器（nginx-pvc）和沙箱容器是公用一个网络、存储、名称空间。。。。
->   - 启动沙箱容器。给沙箱容器设置好网络，存储
+>   - kubelet 触发 SyncPod;
+>   - kubelet 的 Volume Manager 会检查 Pod 声明的所有卷（如 PVC）。如果需要，它会执行以下操作：Attach/Detach（如果是远程块存储）、Mount/Unmount（文件系统挂载）
+>   - 这些操作完成后，创建 Sandbox （pause 容器）;此时，卷的挂载已经就绪，pause 容器本身不直接使用这些卷，但它所在的挂载命名空间会继承这些挂载点，使得后续的应用容器可以访问。
+>   - 每个Pod，都伴随一个Pause容器（沙箱容器）【kubectl get pod 1/1  不计算沙箱容器】。真正的容器（nginx）和沙箱容器是共用用一个网络、存储、名称空间...
+>   - 启动沙箱容器。
 >     - CRI。创建沙箱容器的运行时环境
->     - CNI。挂载沙箱容器网络等
->     - CSI。调用存储系统进行数据挂载。（提前把应用容器需要挂载的挂进来）
->   - 启动应用容器。（kubectl get pod 1/1【不算沙箱容器】  ）
+>     - CNI。挂载沙箱容器网络
+>   - 启动应用容器。
 >     - 应用容器直接创建运行时CRI，用以上的 CNI、CSI
-> - 从应用容器角度出发：`CSI先与CRI启动`。
-> - 从Pod出发。CRI。CNI。CSI
+> - 从应用容器角度出发：`CSI先于CRI启动`。
+> - 代码：
 >   - 沙箱容器代码 https://github.com/kubernetes/kubernetes/blob/d541872f9a036ed4f792232e43fde6dacf0e1084/pkg/kubelet/dockershim/docker_sandbox.go#L89
 >   - 应用容器 https://github.com/kubernetes/kubernetes/blob/d541872f9a036ed4f792232e43fde6dacf0e1084/pkg/kubelet/kubelet.go#L1469
->     - 判断网络（前面准备好的）
->     - 挂载
->     - 容器启动
+>     - 判断网络（前面准备好的）CNI
+>     - 挂载 CSI
+>     - 容器启动 CRI
 
 
 
