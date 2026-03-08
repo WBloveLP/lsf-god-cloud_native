@@ -895,6 +895,68 @@ spec:
 
 
 
+
+ingress-nginx安装完成后，由于是安装了多个，所以需要一个ingress负载均衡器
+
+192.168.10.145
+192.168.10.144
+192.168.10.147
+192.168.10.146
+
+负载他们的80和443端口
+
+在生产环境中，通常采用四层负载均衡（如云厂商的 LB、F5、或者 Nginx stream）将流量引入集群，再由 Ingress-nginx 完成七层路由。
+
+
+所以修改nginx.conf，然后重启：
+
+
+```
+stream {
+   # Kubernetes API Server 负载均衡
+   upstream k8s-apiserver {
+     server 192.168.10.147:6443;
+     server 192.168.10.148:6443;
+     server 192.168.10.149:6443;
+   }
+
+   # Ingress-Nginx HTTP 后端
+   upstream ingress-http {
+     server 192.168.10.145:80;
+     server 192.168.10.144:80;
+     server 192.168.10.147:80;
+     server 192.168.10.146:80;
+   }
+
+   # Ingress-Nginx HTTPS 后端
+   upstream ingress-https {
+     server 192.168.10.145:443;
+     server 192.168.10.144:443;
+     server 192.168.10.147:443;
+     server 192.168.10.146:443;
+   }
+
+   server {
+     listen 6443;
+     proxy_pass k8s-apiserver;
+   }
+
+   # 新增：监听 80 端口，代理到 ingress-http 后端组
+   server {
+     listen 80;
+     proxy_pass ingress-http;
+   }
+
+   # 新增：监听 443 端口，代理到 ingress-https 后端组
+   server {
+     listen 443;
+     proxy_pass ingress-https;
+   }
+}
+```
+
+
+
 # 三、dashboard
 
 可以安装k8s的默认可视化平台
@@ -906,7 +968,7 @@ https://github.com/kubernetes/dashboard   注意：官方下载来的默认没�
 kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
 ```
 
-
+>安装完后，kubectl edit svc -n kubernetes-dashboard kubernetes-dashboard，改为NodePort即可外部访问
 
 ```yaml
 apiVersion: v1

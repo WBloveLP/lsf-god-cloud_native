@@ -1742,6 +1742,8 @@ vi /etc/sysconfig/network-scripts/ifcfg-ens33  静态IP  192.168.10.250
 ```
 BOOTPROTO="static"           //修改：dhcp修改为static
 
+//修改UUID为和其他机器不重复的
+
 IPADDR="192.168.10.250"           //新增：配置静态IP地址
 GATEWAY="192.168.10.2"     //新增：配置网关  查看网关 ip route show default via 后的IP地址就是当前系统的默认网关
 NETMASK="255.255.255.0"     //新增：配置子网掩码
@@ -1772,10 +1774,11 @@ cat /etc/hostname
 cat /etc/hosts
 
 
-#随便启动一个nginx，目的是复制出配置文件
+
+或者随便启动一个nginx，目的是复制出配置文件
 docker run -d -p 80:80 --rm  --name mynginx  nginx
 docker container cp mynginx:/etc/nginx .  #别忘了后面的.
-在拷贝出来的nginx.conf最后添加
+在拷贝出来的nginx.conf最后添加【不要http模块】
 stream {
    upstream k8s-apiserver {
      server 192.168.10.147:6443;
@@ -1788,14 +1791,81 @@ stream {
    }
 }
 
-mkdir -p /etc/nginx/
-mv nginx.conf /etc/nginx/
 
+
+
+我的nginx.conf：
+
+```
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+stream {
+   # Kubernetes API Server 负载均衡
+   upstream k8s-apiserver {
+     server 192.168.10.147:6443;
+     server 192.168.10.148:6443;
+     server 192.168.10.149:6443;
+   }
+
+   # Ingress-Nginx HTTP 后端
+   upstream ingress-http {
+     server 192.168.10.145:80;
+     server 192.168.10.144:80;
+     server 192.168.10.147:80;
+     server 192.168.10.146:80;
+   }
+
+   # Ingress-Nginx HTTPS 后端
+   upstream ingress-https {
+     server 192.168.10.145:443;
+     server 192.168.10.144:443;
+     server 192.168.10.147:443;
+     server 192.168.10.146:443;
+   }
+
+   server {
+     listen 6443;
+     proxy_pass k8s-apiserver;
+   }
+
+   # 新增：监听 80 端口，代理到 ingress-http 后端组
+   server {
+     listen 80;
+     proxy_pass ingress-http;
+   }
+
+   # 新增：监听 443 端口，代理到 ingress-https 后端组
+   server {
+     listen 443;
+     proxy_pass ingress-https;
+   }
+}
+```
+
+
+
+
+mkdir -p /etc/nginx/
 mkdir -p /var/log/nginx
+
+mv nginx.conf /etc/nginx/
 
 docker stop nginx
 
-docker run -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf -v /var/log/nginx:/var/log/nginx  -d --name nginxfork8s -p 80:80 -p 6443:6443  --restart=always  nginx
+docker run -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf -v /var/log/nginx:/var/log/nginx  -d --name nginx-k8s -p 80:80 -p 443:443 -p 6443:6443  --restart=always  nginx
+
+
+<font color="red">这块的nginx后来得优化，比如不用容器部署。而且让这个nginx占用该机器的全部资源，让这台机器专心做负载均衡</font>
 
 
 ## 7、组件启动
