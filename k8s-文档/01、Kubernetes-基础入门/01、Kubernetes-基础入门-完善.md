@@ -543,7 +543,6 @@ docker version
 sudo mkdir -p /etc/docker
 sudo tee /etc/docker/daemon.json <<-'EOF'
 {
-  "exec-opts": ["native.cgroupdriver=systemd"],
   "registry-mirrors": [
     "https://docker.1ms.run",
     "https://docker.xuanyuan.me",
@@ -555,7 +554,15 @@ sudo tee /etc/docker/daemon.json <<-'EOF'
     "https://docker.chenby.cn",
     "https://docker.hpcloud.cloud",
     "https://docker.m.daocloud.io"
-  ]
+  ],
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 5,
+  "log-opts": {
+    "max-size": "300m",
+    "max-file": "2"
+  },
+  "live-restore": true
 }
 EOF
 sudo systemctl daemon-reload

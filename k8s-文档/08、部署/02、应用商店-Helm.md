@@ -30,15 +30,15 @@ https://helm.sh/zh/docs/v3/intro/install
 
 每个Helm [版本](https://github.com/helm/helm/releases)都提供了各种操作系统的二进制版本，这些版本可以手动下载和安装。
 
-1. 下载合适K8s的版本 ：`wget https://get.helm.sh/helm-v3.6.3-linux-amd64.tar.gz`
-2. 解压(`tar -zxvf helm-v3.6.3-linux-amd64.tar.gz`)
+1. 下载合适K8s的版本 ：`wget https://get.helm.sh/helm-v3.5.4-linux-amd64.tar.gz`
+2. 解压(`tar -zxvf helm-v3.5.4-linux-amd64.tar.gz`)
 3. 在解压目录中找到`helm`程序，移动到需要的目录中(`mv linux-amd64/helm /usr/local/bin/helm`) 
 4. 给权限：`chmod +x /usr/local/bin/helm`
 
 # 三、入门使用
 
 helm repo add bitnami https://helm-charts.itboon.top/bitnami 【找到的国内源】
-helm repo add azure http://mirror.azure.cn/kubernetes/charts/ --force-update
+helm repo add azure http://mirror.azure.cn/kubernetes/charts/ 
 ...
 
 helm repo list

@@ -14,6 +14,8 @@ https://github.com/kubernetes-sigs/metrics-server
 
 k8s平台基本指标监控组件
 
+HPA需要先安装metrics-server
+
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -220,10 +222,10 @@ kubernetes官方使用nginx做的组件
 > - 给集群中需要暴露的nginx机器节点打上标签 `node-role=ingress` 如：
 >
 > - ```sh
->   kubectl label node k8s-master3 node-role=ingress
->   kubectl label node k8s-node1 node-role=ingress
->   kubectl label node k8s-node2 node-role=ingress
->   kubectl label node k8s-node3 node-role=ingress
+>   kubectl label node k8s-ha-master3 node-role=ingress
+>   kubectl label node k8s-ha-node1 node-role=ingress
+>   kubectl label node k8s-ha-node2 node-role=ingress
+>   kubectl label node k8s-ha-node3 node-role=ingress
 >   ```
 >
 > - 
@@ -1202,23 +1204,41 @@ subjects:
 
 
 
-# 四、helm应用商店
+# 四、命令行提示【自动补全】
 
-```sh
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-```
+>https://kubernetes.io/zh-cn/docs/reference/kubectl/generated/kubectl_completion/
+>https://kubernetes.io/zh-cn/docs/tasks/tools/install-kubectl-linux/#enable-shell-autocompletion
 
+yum install bash-completion
 
+echo 'source <(kubectl completion bash)' >>~/.bashrc
 
-```sh
-# helm国内源,但是版本很久没更新
-http://mirror.azure.cn/kubernetes/charts/
+kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl > /dev/null
+sudo chmod a+r /etc/bash_completion.d/kubectl
 
-```
-
-
+source /usr/share/bash-completion/bash_completion
 
 
 
+# 五、安装helm应用商店
+
+每个Helm [版本](https://github.com/helm/helm/releases)都提供了各种操作系统的二进制版本，这些版本可以手动下载和安装。
+
+1. 下载合适K8s的版本 ：`wget https://get.helm.sh/helm-v3.5.4-linux-amd64.tar.gz`
+2. 解压(`tar -zxvf helm-v3.5.4-linux-amd64.tar.gz`)
+3. 在解压目录中找到`helm`程序，移动到需要的目录中(`mv linux-amd64/helm /usr/local/bin/helm`) 
+4. 给权限：`chmod +x /usr/local/bin/helm`
+
+
+
+helm repo add bitnami https://helm-charts.itboon.top/bitnami 【找到的国内源】
+helm repo add azure http://mirror.azure.cn/kubernetes/charts/ 
+
+helm repo list
+bitnami     https://helm-charts.itboon.top/bitnami  
+azure     	http://mirror.azure.cn/kubernetes/charts/
+
+
+helm repo update
 
 

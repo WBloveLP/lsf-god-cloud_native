@@ -684,8 +684,15 @@ yum install -y docker-ce-19.03.9  docker-ce-cli-19.03.9 containerd.io-1.4.4
 mkdir /etc/docker
 cat > /etc/docker/daemon.json <<EOF
 {
+  "registry-mirrors": ["https://82m9ar63.mirror.aliyuncs.com"],
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "registry-mirrors": ["https://82m9ar63.mirror.aliyuncs.com"]
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 5,
+  "log-opts": {
+    "max-size": "300m",
+    "max-file": "2"
+  },
+  "live-restore": true
 }
 EOF
 systemctl daemon-reload && systemctl enable --now docker
