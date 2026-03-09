@@ -496,6 +496,9 @@ openssl x509 -in kubernetes.pem -text -noout
 
 ### 1、环境准备与内核升级
 
+>虚拟机磁盘最好给大一点，学习下，最小50G
+
+
 ```sh
 ## 先升级所有机器内核
 ```

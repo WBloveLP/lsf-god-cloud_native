@@ -251,8 +251,7 @@ https://www.rook.io/docs/rook/v1.6/ceph-dashboard.html
 前面的步骤，已经自动部署了。
 
 ```sh
-kubectl -n rook-ceph get service
-#查看service
+kubectl -n rook-ceph get service |grep dashboard
 
 
 #为了方便访问我们改为nodePort。应用nodePort文件
@@ -262,17 +261,8 @@ kubectl -n rook-ceph get service
 kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo
 
 #默认账号 admin
-4/qt]e5wad_HY:0&V.ba
+M;IFY^sE)AW@9MK7QCxo
 ```
-
-
-
-MGR: 2；只有一个能用
-
-Mon: 3; 全部可用
-
-Osd: 全部可用
-
 
 
 > 部署了高可用的mgr：提供页面。
