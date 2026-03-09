@@ -445,11 +445,17 @@ RADOS： Reliable, Autonomic Distributed Object Store
 
 ### 1、配置
 
-RWO:（ReadWriteOnce）
-
 https://www.rook.io/docs/rook/v1.6/ceph-block.html
 
-常用 块存储 。RWO模式；STS删除，pvc不会删除，需要自己手动维护
+常用 块存储 。RWO（ReadWriteOnce）模式；STS删除，pvc不会删除，需要自己手动维护
+
+
+cat /root/rook/cluster/examples/kubernetes/ceph/csi/rbd/storageclass.yaml 
+
+kubectl apply -f storageclass.yaml
+
+kubectl get storageclass
+
 
 ```yaml
 apiVersion: ceph.rook.io/v1
@@ -513,8 +519,7 @@ allowVolumeExpansion: true
 ```
 
 
-
-### 2、STS案例实战
+### 2、STS案例实战【StatefulSet:STS:有状态服务】
 
 
 
@@ -575,13 +580,37 @@ spec:
 
 > 测试： 创建sts、修改nginx数据、删除sts、重新创建sts。他们的数据丢不丢，共享不共享
 
+```sh
+kubectl get pod
+sts-nginx-0                 1/1     Running   0          5m44s
+sts-nginx-1                 1/1     Running   0          5m6s
+sts-nginx-2                 1/1     Running   0          4m53s
 
 
+kubectl exec -it sts-nginx-0 -- /bin/bash
+echo 000 > /usr/share/nginx/html/index.html
+exit
 
+kubectl exec -it sts-nginx-1 -- /bin/bash
+echo 111 > /usr/share/nginx/html/index.html
+exit
+
+kubectl exec -it sts-nginx-2 -- /bin/bash
+echo 222 > /usr/share/nginx/html/index.html
+exit
+
+
+kubectl get svc
+sts-nginx    ClusterIP   10.96.50.112   <none>        80/TCP    6m15s
+
+curl 10.96.50.112
+```
 
 
 
 ## 3、文件存储(CephFS)
+
+
 
 ### 1、配置
 
@@ -589,6 +618,10 @@ spec:
 
 https://rook.io/docs/rook/v1.6/ceph-filesystem.html
 
+cat /root/rook/cluster/examples/kubernetes/ceph/filesystem.yaml
+
+
+vi mfilesystem.yaml：
 ```yaml
 apiVersion: ceph.rook.io/v1
 kind: CephFilesystem
@@ -691,8 +724,11 @@ spec:
     enabled: false
 ```
 
+kubectl apply -f mfilesystem.yaml 
 
+--------------
 
+cat /root/rook/cluster/examples/kubernetes/ceph/csi/cephfs/storageclass.yaml
 ```yaml
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -719,13 +755,42 @@ parameters:
   csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
 
 reclaimPolicy: Delete
+# reclaimPolicy: Retain   # 这样 PVC 被删除后，PV 会保留，但需要手动清理和重用，一般用于需要手动备份的场景。
 allowVolumeExpansion: true
 ```
 
+kubectl apply -f storageclass.yaml
 
+<font color="red">在下面的测试中体会reclaimPolicy的不同配置</font>
 
 ### 2、测试
 
+
+vi mpvc.yaml
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-pv-claim
+  labels:
+    app:  nginx-deploy
+spec:
+  storageClassName: rook-cephfs
+  accessModes:
+    - ReadWriteMany 
+  resources:
+    requests:
+      storage: 10Mi
+```
+kubectl apply -f mpvc.yaml
+
+
+
+----------------
+
+
+vi thisdeploy.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -764,29 +829,48 @@ spec:
         - name: nginx-html-storage
           persistentVolumeClaim:
             claimName: nginx-pv-claim
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: nginx-pv-claim
-  labels:
-    app:  nginx-deploy
-spec:
-  storageClassName: rook-cephfs
-  accessModes:
-    - ReadWriteMany  ##如果是ReadWriteOnce将会是什么效果
-  resources:
-    requests:
-      storage: 10Mi
 ```
-
 
 
 > 测试，创建deploy、修改页面、删除deploy，新建deploy是否绑定成功，数据是否在。
 
+```sh
+kubectl apply -f thisdeploy.yaml
+
+kubectl get all -owide
+pod/nginx-deploy-85994bdd96-ncbxq   1/1     Running   0          52s   172.18.135.99   k8s-ha-node3     <none>           <none>
+pod/nginx-deploy-85994bdd96-qwwpg   1/1     Running   0          52s   172.18.46.215   k8s-ha-node2     <none>           <none>
+pod/nginx-deploy-85994bdd96-rmljt   1/1     Running   0          52s   172.18.46.221   k8s-ha-node2     <none>           <none>
+
+curl 172.18.135.99
+curl 172.18.46.215
+curl 172.18.46.221
+
+kubectl exec -it pod/nginx-deploy-85994bdd96-ncbxq -- /bin/bash
+echo aaa > /usr/share/nginx/html/index.html
+exit
+
+kubectl exec -it pod/nginx-deploy-85994bdd96-qwwpg -- /bin/bash
+echo bbb > /usr/share/nginx/html/index.html
+exit
+
+kubectl exec -it pod/nginx-deploy-85994bdd96-rmljt -- /bin/bash
+echo ccc > /usr/share/nginx/html/index.html
+exit
+
+curl 172.18.135.99
+curl 172.18.46.215
+curl 172.18.46.221
+
+kubectl delete -f thisdeploy.yaml #继续测试上面
 
 
+kubectl exec -it pod/nginx-deploy-85994bdd96-6txn2 -- /bin/bash
+echo lpbbb888 > /usr/share/nginx/html/index.html
+exit
 
+curl 172.18.135.113
+```
 
 ## 4、pvc扩容
 
