@@ -61,8 +61,6 @@ Ceph可以有
 
 
 
-
-
 # 二、Rook
 
 ## 1、基本概念
@@ -334,10 +332,9 @@ kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['dat
 
 
 
-## 5、神坑
+## 5、部署完成的最终结果一定要有这些组件
 
 ```yaml
-#部署完成的最终结果一定要有这些组件
 NAME                                                 READY   STATUS      RESTARTS   AGE
 csi-cephfsplugin-provisioner-d77bb49c6-n5tgs         5/5     Running     0          140s
 csi-cephfsplugin-provisioner-d77bb49c6-v9rvn         5/5     Running     0          140s
@@ -359,18 +356,7 @@ rook-ceph-osd-prepare-node2-ab3fd                    0/2     Completed   0      
 rook-ceph-osd-prepare-node3-w4xyz                    0/2     Completed   0          60s
 ```
 
-
-
-```sh
-#解决方案。
-#找到自己的operator，删除这个pod，让重新执行
-
-kubectl delete pod rook-ceph-operator-65965c66b5-8b9vs -n rook-ceph
-
-
-#rbd：是ceph用来做块存储的
-#cephfs：是用来做共享文件系统的
-```
+不行了就检查yaml，卸载重新部署。【还是不行，就查看磁盘是否可用，不可用就重新挂磁盘】
 
 
 
@@ -439,6 +425,15 @@ CSI：Container Storage Interface：容器存储接口（k8s集群整合存储�
 
 
 # 四、实战
+
+
+
+
+rbd：是ceph用来做块存储的
+
+
+cephfs：是用来做共享文件系统的
+
 
 ## 1、块存储(RDB)
 
