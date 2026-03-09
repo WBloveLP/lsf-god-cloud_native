@@ -263,7 +263,7 @@ kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['dat
 ```
 参考00、网络规划，使用ingress访问rook的dashboard
 
-> 如果部署了高可用的mgr：
+> 如果部署了高可用的mgr【多个mgr，但是他是主备模式的，所以一般部署一个即可】：
 >
 > - 先部署nodePort，验证到底哪个mgr不能访问
 >

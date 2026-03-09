@@ -5,3 +5,5 @@ eyJhbGciOiJSUzI1NiIsImtpZCI6IjBFYzhCOUFScTFPQk0xTm04aE82T05Wcm9hSkhZbzVPWnZIRFpK
 
 rook-ceph-dashboard:
 kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo
+
+admin {msI0.|,h).o]n:aJd'#
