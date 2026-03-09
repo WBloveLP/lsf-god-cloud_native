@@ -229,6 +229,8 @@ cd rook/cluster/examples/kubernetes/ceph
 ```
 
 
+类似于osdsPerDevice，如果要部署高可用【多个实例，多个副本】的mgr，修改yaml文件即可。
+
 
 ## 3、部署
 
@@ -254,9 +256,6 @@ https://www.rook.io/docs/rook/v1.6/ceph-dashboard.html
 kubectl -n rook-ceph get service |grep dashboard
 
 
-#为了方便访问我们改为nodePort。应用nodePort文件
-
-
 #获取访问密码
 kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo
 
@@ -265,7 +264,7 @@ M;IFY^sE)AW@9MK7QCxo
 ```
 
 
-> 部署了高可用的mgr：提供页面。
+> 如果部署了高可用的mgr：
 >
 > - 先部署nodePort，验证到底哪个mgr不能访问
 >

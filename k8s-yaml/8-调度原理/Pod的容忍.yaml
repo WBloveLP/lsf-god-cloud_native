@@ -6,6 +6,9 @@
 # kubectl taint nodes  k8s-node1 haha=hehe:NoSchedule-
 # kubectl taint nodes  k8s-node2 haha-
 
+
+# kubectl taint nodes k8s-ha-master2 node-role.kubernetes.io/master=:NoSchedule
+
 apiVersion: v1
 kind: Pod
 metadata:
