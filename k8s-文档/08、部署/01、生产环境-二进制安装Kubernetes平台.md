@@ -2654,7 +2654,7 @@ kubectl label node k8s-ha-node1 node-role.kubernetes.io/worker=''
 kubectl label node k8s-ha-node2 node-role.kubernetes.io/worker=''
 
 
-# 给master1打上污点。二进制部署的集群，默认master是没有污点的，可以任意调度。我们最好给一个master打上污点，保证master最小可用
+# 给master1或者加上master2打上污点。二进制部署的集群，默认master是没有污点的，可以任意调度。我们最好给一两个master打上污点，保证master最小可用
 kubectl taint nodes k8s-ha-master1 node-role.kubernetes.io/master=:NoSchedule
 
 

@@ -239,9 +239,10 @@ cd rook/cluster/examples/kubernetes/ceph
 kubectl create -f crds.yaml -f common.yaml -f operator.yaml
 
 #running后再运行下一步
-watch -n 1 kubectl get pod -n rook-ceph -owide
+kubectl get all -n rook-ceph -owide
 
 kubectl create -f cluster.yaml
+watch -n 1 kubectl get pod -n rook-ceph -owide
 
 ```
 
@@ -379,12 +380,11 @@ kubectl delete pod rook-ceph-operator-65965c66b5-8b9vs -n rook-ceph
 
 ```sh
 # rook集群的清除，
-##1、 delete -f 之前的yaml
+
+cd /root/rook/cluster/examples/kubernetes/ceph
 
 kubectl delete -f crds.yaml -f common.yaml -f operator.yaml  -f cluster.yaml
 
-##2、 再执行如下命令
-kubectl -n rook-ceph get cephcluster
 kubectl -n rook-ceph patch cephclusters.ceph.rook.io rook-ceph -p '{"metadata":{"finalizers": []}}' --type=merge
 
 for CRD in $(kubectl get crd -n rook-ceph | awk '/ceph.rook.io/ {print $1}'); do
@@ -392,7 +392,7 @@ for CRD in $(kubectl get crd -n rook-ceph | awk '/ceph.rook.io/ {print $1}'); do
     xargs -I {} kubectl patch -n rook-ceph {} --type merge -p '{"metadata":{"finalizers": []}}'
 done
 
-##3、 清除每个节点的 /var/lib/rook 目录
+##清除每个节点的 /var/lib/rook 目录
 rm -rf /var/lib/rook
 ```
 

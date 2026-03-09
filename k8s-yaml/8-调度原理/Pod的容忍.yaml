@@ -8,6 +8,7 @@
 
 
 # kubectl taint nodes k8s-ha-master2 node-role.kubernetes.io/master=:NoSchedule
+# kubectl taint nodes k8s-ha-master2 node-role.kubernetes.io/master=:NoExecute-
 
 apiVersion: v1
 kind: Pod
