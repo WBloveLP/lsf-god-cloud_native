@@ -261,9 +261,9 @@ kubectl -n rook-ceph get service |grep dashboard
 kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo
 
 #默认账号 admin
-M;IFY^sE)AW@9MK7QCxo
+{msI0.|,h).o]n:aJd'#
 ```
-
+参考00、网络规划，使用ingress访问rook的dashboard
 
 > 如果部署了高可用的mgr：
 >
