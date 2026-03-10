@@ -447,7 +447,7 @@ RADOS： Reliable, Autonomic Distributed Object Store
 
 https://www.rook.io/docs/rook/v1.6/ceph-block.html
 
-常用 块存储 。RWO（ReadWriteOnce）模式；STS删除，pvc不会删除，需要自己手动维护
+常用 块存储 。RWO（ReadWriteOnce：单人读写）模式；STS删除，pvc不会删除，需要自己手动维护
 
 
 cat /root/rook/cluster/examples/kubernetes/ceph/csi/rbd/storageclass.yaml 
@@ -608,7 +608,7 @@ curl 10.96.50.112
 
 
 
-## 3、文件存储(CephFS)
+## 2、文件存储(CephFS)
 
 
 
@@ -872,42 +872,38 @@ exit
 curl 172.18.135.113
 ```
 
-## 4、pvc扩容
+
+
+
+### 3、总结
+
+
+
+
+> 有状态应用（3个副本）使用块存储。自己操作自己的pvc挂载的pv；PVC不删不丢失【删了也不一定丢失，看你怎么配StorageClass的reclaimPolicy】
+>
+> 无状态应用（3个副本）使用共享存储。很多人操作一个pvc挂载的pv；PVC不删不丢失
+> - 其他Pod可以对数据进行修改【看你怎么配pvc的accessModes, 可以配为多人只读】
+
+
+
+## 3、pvc扩容
 
 参照CSI（容器存储接口）文档： 
 
 卷扩容：https://www.rook.io/docs/rook/v1.6/ceph-csi-drivers.html#dynamically-expand-volume
 
-### 1、动态卷扩容
+动态卷扩容：
 
 ```yaml
 # 之前创建storageclass的时候已经配置好了
 
-
 # 测试：去容器挂载目录  curl -O 某个大文件  默认不能下载
 
-#修改原来的PVC，可以扩充容器。
+# 修改原来的PVC的storage，可以扩充容器。
 
-#注意，只能扩容，不能缩容
+# 注意，只能扩容，不能缩容
 ```
-
-
-
-
-
-> 有状态应用（3个副本）使用块存储。自己操作自己的pvc挂载的pv；也不丢失
->
-> 无状态应用（3个副本）使用共享存储。很多人操作一个pvc挂载的一个pv；也不丢失
->
-> - 其他Pod可以对数据进行修改
-> - MySQL 有状态做成主节点。。。MySQL - Master  ---- pv
-> - MySQL 无状态只读 挂载master的 pvc。
-
-
-
-## 5、更多参照官方文档
-
-
 
 
 
