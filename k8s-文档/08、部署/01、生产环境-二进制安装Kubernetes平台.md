@@ -8,9 +8,10 @@
 # 一、前置概念与操作
 
 修改：
-开机前修改mac地址
+开机前修改mac地址【如果是新建，记得选上海时区】
 vi /etc/sysconfig/network-scripts/ifcfg-ens33
 vi /etc/hostname
+每个节点：systemctl enable ntpdate.service
 reboot
 echo "127.0.0.1   $(hostname)" >> /etc/hosts
 

@@ -101,3 +101,16 @@ helm chart push 192.168.86.5/chart/mariadb:test
 helm registry logout 192.168.86.5
 ```
 
+
+
+
+
+# 四、Helm使用总结
+
+1、拉仓库
+
+2、下安装包
+
+3、解压改values.yaml
+
+4、install
