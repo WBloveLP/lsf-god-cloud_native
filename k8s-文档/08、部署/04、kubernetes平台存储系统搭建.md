@@ -407,14 +407,13 @@ CSI：Container Storage Interface：容器存储接口（k8s集群整合存储�
 >     - CRI。创建沙箱容器的运行时环境
 >     - CNI。挂载沙箱容器网络
 >   - 启动应用容器。
->     - 应用容器直接创建运行时CRI，用以上的 CNI、CSI
+>     - 判断网络（前面准备好的）CNI
+>     - 挂载 CSI
+>     - 容器启动 CRI
 > - 从应用容器角度出发：`CSI先于CRI启动`。
 > - 代码：
 >   - 沙箱容器代码 https://github.com/kubernetes/kubernetes/blob/d541872f9a036ed4f792232e43fde6dacf0e1084/pkg/kubelet/dockershim/docker_sandbox.go#L89
 >   - 应用容器 https://github.com/kubernetes/kubernetes/blob/d541872f9a036ed4f792232e43fde6dacf0e1084/pkg/kubelet/kubelet.go#L1469
->     - 判断网络（前面准备好的）CNI
->     - 挂载 CSI
->     - 容器启动 CRI
 
 
 

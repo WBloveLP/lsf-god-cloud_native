@@ -67,7 +67,12 @@ helm repo update
 
 ```sh
 helm search repo  mysql -l | grep 8.0.
-helm pull bitnami/mysql --version 10.2.1
+                                              Chart 版本       App 版本
+bitnami/mysql                                 	10.2.1       	8.0.36 
+第二列（如 1.6.2）是 Chart 版本（Chart 自身的打包版本）
+第三列（如 2.2.2）是 App 版本（Chart 中部署的 Harbor 应用程序的版本）
+
+helm pull bitnami/mysql --version 10.2.1 # 使用 Chart 版本号拉取
 ls
 tar -zxvf mysql-10.2.1.tgz
 ...
@@ -111,6 +116,10 @@ helm registry logout 192.168.86.5
 
 2、下安装包
 
-3、解压改values.yaml
+3、解压；cp values.yaml myself.yaml；修改myself.yaml
 
-4、install
+4、helm install  helm -f values.yaml -f myself.yaml applicationName ./ -n namespace
+
+5、helm list -A
+
+6、uninstall
