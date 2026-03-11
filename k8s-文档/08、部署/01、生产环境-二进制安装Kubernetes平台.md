@@ -2626,6 +2626,20 @@ kubectl apply -f calico.yaml
 
 ## 11、部署coreDNS【master1执行】
 
+```
+在 Kubernetes 中，能够通过服务名（如 prometheus-stack-kube-prom-prometheus）访问 Service，正是依赖于集群内的 DNS 服务（通常是 CoreDNS 或传统的 kube-dns）。
+
+CoreDNS（或其他 DNS 组件） 运行在集群中，负责解析 Service 名称。
+
+当您创建一个 Service 时，DNS 服务会自动为其注册一条 A 记录，格式为：
+<service-name>.<namespace>.svc.cluster.local
+
+同一个命名空间内的 Pod，由于 /etc/resolv.conf 中配置了 search 域（如 namespace.svc.cluster.local），可以直接使用短域名（服务名）访问，DNS 会自动补全为完整域名。
+
+如果没有 DNS 服务，就只能通过 ClusterIP 或环境变量访问，无法直接使用服务名。
+
+补充一点: 即使没有 DNS，Kubernetes 还会为每个 Pod 注入环境变量（如 PROMETHEUS_STACK_KUBE_PROM_PROMETHEUS_SERVICE_HOST），但这种方式不如 DNS 灵活可靠，且仅限于同命名空间或提前创建的服务。因此 DNS 是 Kubernetes 服务发现的标准方式。
+```
 
 calico部署完毕后，再操作。
 
