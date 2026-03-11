@@ -2576,7 +2576,7 @@ systemctl status kube-proxy
 
 ## 10、部署calico【master1执行】
 
->用如下命令代替，不用做## 10、部署calico【master1执行】
+>用如下命令代替，不用做这里的部署calico
 >kubectl apply -f  https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/calico.yaml
 
 
@@ -2626,7 +2626,6 @@ kubectl apply -f calico.yaml
 
 ## 11、部署coreDNS【master1执行】
 
->不用做11、部署coreDNS【master1执行】
 
 calico部署完毕后，再操作。
 
