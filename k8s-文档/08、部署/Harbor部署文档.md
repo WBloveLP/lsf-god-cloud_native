@@ -1,26 +1,16 @@
-以后`*.itdachang.com`这个通配符证书，各个名称空间都放一份
-
-```sh
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*.itdachang.com/O=*.itdachang.com"
-
-kubectl create secret tls itdachang.com --key tls.key --cert tls.crt
-kubectl create secret tls harbor.itdachang.com --key tls.key --cert tls.crt -n devops
-...
-```
 
 
 
-------------------------------------------------------------
+## 0、Harbor介绍
 
 
+Harbor是啥：
 
-私有仓库：可以保存charts、images、...
+- 私有仓库：可以保存charts、images、...
 
-Harbor还可以充当docker hub的中转站，代理docker hub
+- Harbor还可以充当docker hub的中转站，代理docker hub
 
-
-
-## 0、核心组件
+核心组件：
 
 ![img](assets/2104126-20201217173704535-710001277.png)
 
@@ -33,14 +23,45 @@ Harbor还可以充当docker hub的中转站，代理docker hub
 - Log：为了帮助监控Harbor运行，负责收集其他组件的log，记录到syslog中
 
 
-## 1、创建基本信息
+## 1、基本环境
+
+自定义域名（自签的证书），docker不能信任该证书；我们要让各个docker节点都信任这个证书
+
+由于harbor使用的是https。所以需要docker信任这个https；
 
 ```sh
-# kubectl create ns devops
-kubectl create namespace devops
-#tls.key、tls.crt用之前的ingress的总证书即可
-kubectl create secret tls itdachang.com --cert=tls.crt   --key=tls.key  -n devops
+# 把以前总ingress的证书的文件 复制到 各个需要使用harbor的装了docker的节点的  /etc/docker/certs.d/harbor.itdachang.com/tls.crt
+
+mkdir -p /etc/docker/certs.d/harbor.itdachang.com/
+
+for NODE in k8s-ha-master1 k8s-ha-master2 k8s-ha-master3 k8s-ha-node1 k8s-ha-node2 k8s-ha-node3; do
+    scp /root/crt/itdachang/tls.crt root@$NODE:/etc/docker/certs.d/harbor.itdachang.com/
+done
 ```
+
+
+
+给所有docker机器配置/etc/hosts：
+
+```sh
+#随便一个安装了ingress的节点的ip harbor.itdachang.com
+192.168.10.147 harbor.itdachang.com
+```
+
+
+
+> 云上`自定义域名`如下操作：
+>
+> 1、配置每个主机的 /etc/hosts文件。可指定域名地址为 `公网ip`或者`ingress节点所在ip`
+>
+> 2、在 `/etc/docker/certs.d/` 下面准备域名文件夹（包含非默认的端口号），并把域名的 `cert/crt`文件复制进去。并且修改文件名叫  `xxx.crt`，不能是cert文件
+>
+> ![1622273679643](assets/1622273679643.png)
+>
+> 3、建议配置 ingress节点所在ip 。这样我们使用域名来到了ingress节点。ingress节点的nginx监听到了此域名，则转发给指定服务
+>
+> ![1622273855432](assets/1622273855432.png)
+
 
 
 
@@ -61,6 +82,16 @@ tar -xvf harbor-1.6.2.tgz
 
 cd harbor && ls
 ```
+
+
+
+```sh
+# kubectl create ns devops
+kubectl create namespace devops
+#tls.key、tls.crt用之前的ingress的总证书即可
+kubectl create secret tls itdachang.com --cert=tls.crt   --key=tls.key  -n devops
+```
+
 
 
 
@@ -141,26 +172,13 @@ watch kubectl get pod -n devops
 
 
 
+## 4、docker使用
 
-
-
-## 4、推送与下载镜像
 
 ```sh
-docker login  aliyunxxxx
-## 给所有docker机器 配置/etc/hosts       
-10.120.102.31 harbor.itdachang.com
-192.168.0.14 harbor.itdachang.com
-## 给vpc网络配置443转到任意一个ingress机器的443
-以后任意域名直接配置  
-vpcip（不能访问443？？？） 域名地址  
-192.168.0.14 harbor.itdachang.com
-
-
-docker login harbor.itdachang.com
+docker login harbor.itdachang.com 【admin Harbor12345】
 ```
 
-> 自定义域名（使用自签证书）docker不能信任证书
 
 ```sh
 docker pull busybox
@@ -168,13 +186,28 @@ docker tag busybox harbor.itdachang.com/mall/busybox:v1.0
 docker push  harbor.itdachang.com/mall/busybox:v1.0
 ```
 
-> 各个docker节点都应该信任这个证书
+
+## 5、镜像代理
+
+![1622776953811](assets/1622776953811.png)
+
+```sh
+# 拉取docker官方镜像。并缓存起来。harbor.itdachang.com/自己的仓库名/ + /library + /镜像名：版本
+docker pull harbor.itdachang.com/harbor-hub/library/busybox:latest
+# 第三方。用第三方全名 harbor.itdachang.com/objs + 第三方
+docker pull harbor.itdachang.com/objs/redislabs/redis
+```
+
+
+
+> 自建域名系统
+>
+> 10.120.102.31  harbor.itdachang.com
 
 
 
 
 
-## 5、使用私有仓库与镜像代理
 
 > 机器人账号
 >
@@ -208,72 +241,6 @@ docker pull harbor.itdachang.com/hello/nginx/nginx-ingress
 > webhook：钩子
 >
 > 可以结合cicd。触发外界行为
-
-
-
-
-
-## 6、docker使用
-
-
-
-### 1、基本配置
-
-
-
-#### 1、使用https方式访问
-
-由于harbor使用的是https。需要docker信任这个https；
-
-```sh
-# 把xx.cert文件 复制到  /etc/docker/certs.d/harbor.itdachang.com/tls.crt
-```
-
-> 云上`自定义域名`如下操作：
->
-> 1、配置每个主机的 /etc/hosts文件。可指定域名地址为 `公网ip`或者`ingress节点所在ip`
->
-> 2、在 `/etc/docker/certs.d/` 下面准备域名文件夹（包含非默认的端口号），并把域名的 `cert/crt`文件复制进去。并且修改文件名叫  `xxx.crt`，不能是cert文件
->
-> ![1622273679643](assets/1622273679643.png)
->
-> 3、建议配置 ingress节点所在ip 。这样我们使用域名来到了ingress节点。ingress节点的nginx监听到了此域名，则转发给指定服务
->
-> ![1622273855432](assets/1622273855432.png)
-
-
-
-
-
-#### 2、不使用https访问
-
-```sh
-#修改docker配置文件
-{"insecure-registries":["https://test.com","192.168.1.13","更多的...."]}
-```
-
-### 2、镜像代理
-
-![1622776953811](assets/1622776953811.png)
-
-```sh
-# 拉取docker官方镜像。并缓存起来。harbor.itdachang.com/自己的仓库名/ + /library + /镜像名：版本
-docker pull harbor.itdachang.com/harbor-hub/library/busybox:latest
-# 第三方。用第三方全名 harbor.itdachang.com/objs + 第三方
-docker pull harbor.itdachang.com/objs/redislabs/redis
-```
-
-
-
-> 自建域名系统
->
-> 10.120.102.31  harbor.itdachang.com
-
-
-
-
-
-
 
 
 

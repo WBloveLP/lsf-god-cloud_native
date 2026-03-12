@@ -1,5 +1,5 @@
 1、简单微服务：自己写 Deployment（无状态）、StatefulSet（有状态）之类的文件
-	问题：Deployment-Redis。多环境适配没法做
+      问题：Deployment-Redis。多环境适配没法做
 	
 	
 2、Helm（应用商店）。一般第三方应用都做好了镜像
@@ -11,7 +11,7 @@
 	
 
 3、第三方的组件过来怎么部署到k8s上？？？？
-    1、docker run能出来的，k8s都能出来
+        1、docker run能出来的，k8s都能出来
 	2、deploy,sts
 	3、gitlab、harbor推荐可以专门部署到某些机器，可以不用k8s集群管理
 

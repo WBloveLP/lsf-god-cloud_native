@@ -228,7 +228,7 @@ kubernetes官方使用nginx做的组件
 >   kubectl label node k8s-ha-node3 node-role=ingress
 >   ```
 >
-> - 
+> - 配置好证书，访问域名，就会默认跳转到https；
 >
 > - 部署ingress的node节点会自动 开启 节点的 `80和443` 端口，保证这个机器端口不会被占用
 >
