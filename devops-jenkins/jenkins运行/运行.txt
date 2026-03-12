@@ -13,9 +13,9 @@ docker run   -u  root    -d    -p 8080:8080 -p 50000:50000  --name   jenkinsdemo
 
 
 
-配置：【2.346哪来的呢？/var/jenkins_home/config.xml看到的】
+配置：【2.346哪来的呢？/var/jenkins_home/config.xml看到的】【JENKINS_VERSION=2.346.3】
 /var/jenkins_home/hudson.model.UpdateCenter.xml：https://mirrors.huaweicloud.com/jenkins/updates/dynamic-2.346/update-center.json
-/var/jenkins_home/updates/default.json：上面UpdateCenter.xml的内容（去除updateCenter.post();【以默认就有的格式粘贴】） && google ==> baidu
+/var/jenkins_home/updates/default.json：上面UpdateCenter.xml的内容（去除updateCenter.post();【以默认就有的格式粘贴】） && www.google.com ==> www.baidu.com
 重启jenkins
 
 

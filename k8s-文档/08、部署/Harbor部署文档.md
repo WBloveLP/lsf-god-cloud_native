@@ -182,6 +182,8 @@ watch kubectl get pod -n devops
 
 ```sh
 docker login harbor.itdachang.com 【admin Harbor12345】
+
+docker logout harbor.itdachang.com
 ```
 
 
