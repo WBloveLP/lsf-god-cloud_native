@@ -10,6 +10,9 @@ Harbor是啥：
 
 - Harbor还可以充当docker hub的中转站，代理docker hub
 
+- 功能强大：有webhook等功能...
+
+
 核心组件：
 
 ![img](assets/2104126-20201217173704535-710001277.png)
@@ -174,85 +177,59 @@ watch kubectl get pod -n devops
 
 ## 4、docker使用
 
+访问 https://harbor.itdachang.com/harbor/projects 新建一个mall项目
+
 
 ```sh
 docker login harbor.itdachang.com 【admin Harbor12345】
 ```
 
 
+
 ```sh
-docker pull busybox
-docker tag busybox harbor.itdachang.com/mall/busybox:v1.0
-docker push  harbor.itdachang.com/mall/busybox:v1.0
+#我本地有一个alpine:latest镜像
+docker tag alpine:latest harbor.itdachang.com/mall/alpine:v1.0
+docker push  harbor.itdachang.com/mall/alpine:v1.0
 ```
+
+查看私库中已推送的镜像：
+
+![20260312_140145](assets/20260312_140145.png)
+
+
+从私有仓库中拉取该镜像：【比如从随便一台机器上拉取】：
+
+```sh
+#公有项目下的仓库直接拉；私有项目下的仓库需登录
+docker pull  harbor.itdachang.com/mall/alpine:v1.0
+```
+
+
+
+> 给别人admin账号，风险太高，因此可以创建一个机器人账号让别人去使用【创建的时候指定好权限即可】：
+>
+> 账号： robot$hello+hellopull
+>
+> 密码【创建的时候只显示一次】： foTlux0RTBGzPlvNaxmAkEj4E6quYb10
+>
+> 可以用k8s的secret进行管理该机器人账号；或者手动用该账号密码登录
 
 
 ## 5、镜像代理
 
-![1622776953811](assets/1622776953811.png)
 
-```sh
-# 拉取docker官方镜像。并缓存起来。harbor.itdachang.com/自己的仓库名/ + /library + /镜像名：版本
-docker pull harbor.itdachang.com/harbor-hub/library/busybox:latest
-# 第三方。用第三方全名 harbor.itdachang.com/objs + 第三方
-docker pull harbor.itdachang.com/objs/redislabs/redis
-```
-
-
-
-> 自建域名系统
->
-> 10.120.102.31  harbor.itdachang.com
-
-
-
-
-
-
-> 机器人账号
->
-> admin Harbor12345
->
-> 机器人：
->
-> 账号： robot$hello+hellopull
->
-> 密码： foTlux0RTBGzPlvNaxmAkEj4E6quYb10
->
-> 
-
-
-
-```sh
-docker tag busybox harbor.itdachang.com/hello/busybox:v1.0
-```
 
 代理仓库，代理中央仓库
 
+![1622776953811](assets/1622776953811.png)
+
+拉取docker官方镜像。并缓存起来。
+
 ```sh
-#代理官方镜像
+#新建一个hello项目
+
+#代理官方    harbor.itdachang.com/自己的项目名 + /library + /镜像名：版本
 docker pull harbor.itdachang.com/hello/library/alpine
-#代理第三方
+#代理第三方  harbor.itdachang.com/自己的项目名 + /第三方全名 【nginx/nginx-ingress就是该镜像在docker hub中的全名】
 docker pull harbor.itdachang.com/hello/nginx/nginx-ingress
 ```
-
-
-
-> webhook：钩子
->
-> 可以结合cicd。触发外界行为
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
