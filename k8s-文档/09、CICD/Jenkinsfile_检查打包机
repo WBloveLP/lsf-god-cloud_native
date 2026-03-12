@@ -1,0 +1,73 @@
+pipeline {
+    //无代理，各阶段声明自己的代理
+    agent none
+    stages {
+        stage('检查nodejs打包机') {
+            //使用nodejs代理
+            agent {
+                label 'nodejs'
+            }
+            steps {
+                echo "nodejs版本："
+                sh 'node -v'
+                echo "npm modules目录位置"
+                sh 'npm config ls -l | grep prefix'
+                echo "检查完成..."
+            }
+        }
+
+        stage('检查maven打包机') {
+            //使用nodejs代理
+            agent {
+                label 'maven'
+            }
+            steps {
+                echo "maven版本："
+                sh 'mvn -v'
+                echo "maven配置文件"
+                sh 'cat /root/maven/settings.xml'
+
+                echo "maven目录位置信息"
+                sh 'ls /root/maven/'
+            }
+        }
+
+        stage('检查kubectl打包机') {
+            //使用nodejs代理
+            agent {
+                label 'kubectl'
+            }
+            steps {
+                echo "kubectl版本："
+                sh ' kubectl version'
+                echo "kubectl操作集群: 所有Pod"
+                sh 'kubectl get pods'
+
+                echo "kubectl操作集群: 所有nodes"
+                sh 'kubectl get nodes'
+            }
+        }
+
+        stage('检查docker打包机') {
+            //使用nodejs代理
+            agent {
+                label 'docker'
+            }
+            steps {
+                echo "docker版本："
+                sh ' docker version'
+
+
+                echo "docker 推送私库镜像测试 "
+
+                sh 'docker login -u admin -p Admin123789 harbor.itdachang.com'
+
+                sh 'docker pull alpine'
+                sh 'docker tag alpine harbor.itdachang.com/library/alpine:v1'
+                sh 'docker push harbor.itdachang.com/library/alpine:v1'
+
+            }
+        }
+    }
+}
+

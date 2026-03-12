@@ -1,0 +1,216 @@
+pipeline {
+    agent any
+
+    //环境变量，所有的环境变量最终得到的都是字符串，没有复杂对象以及true/false等
+    environment {
+        //git检出的代码存放与共享的文件夹
+//        GIT_DIR = 'ruoyi'
+        //所有提交变化的项目
+        CHANGED_PROJECTS = "";
+        //原始变化的所有项目
+        ORIGIN_CHANGED_PROJECTS = "";
+
+        //基础项目变化，所有项目镜像必须重新打包
+        BASE_PROJECTS = "ruoyi-common,ruoyi-api"
+        //是否基础项目发生了变化
+        BASE_PROJECTS_CHANGED = false
+
+
+        HARBOR_CREDENTIAL_ID = 'harbor-id'  //harbor私仓账号密码信息
+        REGISTRY = 'harbor.itdachang.com'
+        HARBOR_NAMESPACE = 'mall'
+        GITLAB_CREDENTIAL_ID = 'git-secret'
+
+
+        // ========记录需要部署的项目=======
+        GATEWAY_CHANGED = false
+        AUTH_CHANGED = false
+        VISUAL_CHANGED = false
+
+    }
+
+    //触发器
+    triggers {
+        GenericTrigger(
+                genericVariables: [
+                        [key: 'ref', value: '$.ref'],
+                        [key: 'committer', value: '$.pusher.username'],
+                        [key: 'added', value: '$.commits[*].added'],
+                        [key: 'removed', value: '$.commits[*].removed'],
+                        [key: 'modified', value: '$.commits[*].modified'],
+                        [key: 'gitUrl', value: '$.repository.clone_url'],
+                        [key: 'hookName', value: '$.hook_name'],
+                        [key: 'respBody', value: '$.*']
+                ],
+                causeString: '$committer 触发了 $ref 分支改变',
+                token: 'fdsfdsfdsfgdhgfhgju6yy544edwqrfdsgfhrtw563yhgfd',
+                printContributedVariables: true,
+                printPostContent: true,
+                silentResponse: false
+        )
+    }
+
+    //构建阶段
+    stages {
+        stage('环境信息分析') {
+            steps {
+                sh 'pwd && ls -alh'
+//                sh 'mvn clean package -s "/app/maven/settings.xml"  -Dmaven.test.skip=true'
+                sh "echo ==============远程触发基本信息如下============="
+                sh "echo 分支:[$ref]   提交者:[$committer]"
+                sh "echo 添加:[$added]  移除:[$removed] 修改:[$modified]"
+                sh "echo git地址： $gitUrl"
+                sh "echo 钩子： $hookName"
+                sh "printenv"
+
+                script {
+                    def GIT_BRANCH = 'origin/' + sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    sh 'echo 分支名：GIT_BRANCH: ${GIT_BRANCH}'
+                    // 提取所有变化
+                    def matcher = "${modified}" + "," + "${added}" + "," + "${removed}" =~ /[\[\]]/
+                    // 分割为数组
+                    def changes = matcher.replaceAll('').split(",")
+                    // 数组进行去重
+                    def results = [];
+                    HashSet h = new HashSet();
+                    for (change in changes) {
+                        int i = change.indexOf('/'); //找到/分割的项目名
+                        if (i > 0) {
+                            //截串获取项目名
+                            change = change.substring(0, i)
+                            //有子模块，按照子模块打包
+                            if (change.contains("ruoyi-modules")) {
+                                def x = change.substring(i + 1)
+                                change += x.substring(0, x.indexOf('/'))
+                            }
+
+                        }
+                        //去掉多余引号
+                        h.add(change.replaceAll('"', ''));
+                    }
+                    results.addAll(h)
+
+                    //判断基础项目是否发生变化
+                    for (baseChange in "${BASE_PROJECTS}".split(",")) {
+                        def mm = matcher.replaceAll('').contains(baseChange)
+                        if (mm) {
+                            BASE_PROJECTS_CHANGED = mm.toString()
+                            echo "基础代码发生改变，将在后续环节重新构建项目: BASE_PROJECTS_CHANGED ${BASE_PROJECTS_CHANGED}"
+                        }
+                    }
+
+                    //给环境变量赋值
+                    CHANGED_PROJECTS = results.join(",");
+                    ORIGIN_CHANGED_PROJECTS = changes.join(",")
+
+
+                }
+                echo "提交感知到的所有改变的项目：${ORIGIN_CHANGED_PROJECTS}"
+                echo "项目去重后发生改变的项目名：${CHANGED_PROJECTS}"
+            }
+        }
+
+        stage('代码构建') {
+            //跳过代码检出
+            options { skipDefaultCheckout() }
+            agent {
+                label 'maven'
+            }
+            steps {
+                sh 'pwd && ls -alh'
+            }
+        }
+
+        stage('按需制作镜像') {
+            options { skipDefaultCheckout() }
+            parallel {
+                // 注意多个stage是并行关系。stage里面的多个step是串行关系
+                stage("ruoyi-gateway") {
+                    options {
+                        skipDefaultCheckout()
+                        retry(3)
+                    }
+                    when {
+                        expression {
+                            return ORIGIN_CHANGED_PROJECTS.contains("ruoyi-gateway") || BASE_PROJECTS_CHANGED.equals("true")
+                        }
+                    }
+                    agent {
+                        label "maven"
+                    }
+                    steps {
+                        sh 'pwd && ls -alh'
+                    }
+                }
+                stage("ruoyi-auth") {
+                    options {
+                        skipDefaultCheckout()
+                        retry(3)
+                    }
+                    when {
+                        expression {
+                            return ORIGIN_CHANGED_PROJECTS.contains("ruoyi-auth") || BASE_PROJECTS_CHANGED.equals("true")
+                        }
+                    }
+                    agent {
+                        label "maven"
+                    }
+                    steps {
+                        sh 'pwd && ls -alh'
+                    }
+                }
+                stage("ruoyi-modules") {
+                    options {
+                        skipDefaultCheckout()
+                        retry(3)
+                    }
+                    when {
+                        expression {
+                            return ORIGIN_CHANGED_PROJECTS.contains("ruoyi-modules") || BASE_PROJECTS_CHANGED.equals("true")
+                        }
+                    }
+                    agent {
+                        label "maven"
+                    }
+                    steps {
+                        sh 'pwd && ls -alh'
+                    }
+                }
+                stage("ruoyi-ui") {
+                    options {
+                        skipDefaultCheckout()
+                        retry(3)
+                    }
+                    when {
+                        expression {
+                            return ORIGIN_CHANGED_PROJECTS.contains("ruoyi-ui")
+                        }
+                    }
+                    agent {
+                        label "nodejs"
+                    }
+                    steps {
+                        sh 'pwd && ls -alh'
+                    }
+                }
+                stage("ruoyi-visual") {
+                    options {
+                        skipDefaultCheckout()
+                        retry(3)
+                    }
+                    when {
+                        expression {
+                            return ORIGIN_CHANGED_PROJECTS.contains("ruoyi-visual") || BASE_PROJECTS_CHANGED.equals("true")
+                        }
+                    }
+                    agent {
+                        label "maven"
+                    }
+                    steps {
+                        sh 'pwd && ls -alh'
+                    }
+                }
+            }
+        }
+    }
+}
