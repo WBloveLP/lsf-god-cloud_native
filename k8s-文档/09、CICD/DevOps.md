@@ -708,19 +708,7 @@ Generic Webhook Trigger：参照官网进行使用
 
 
 
-# 三、Jenkins On Docker
-
-```groovy
-
-```
-
-
-
-
-
-
-
-# 四、Jenkins On Kubernetes
+# 三、Jenkins On Kubernetes
 
 ## 1、部署
 
