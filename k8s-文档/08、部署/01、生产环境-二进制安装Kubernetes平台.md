@@ -527,6 +527,8 @@ vi /etc/hosts
 192.168.10.144 k8s-ha-node3
 192.168.10.250 k8s-ha-master-lb 
 
+
+echo "127.0.0.1   localhost" >> /etc/hosts
 ```
 
 

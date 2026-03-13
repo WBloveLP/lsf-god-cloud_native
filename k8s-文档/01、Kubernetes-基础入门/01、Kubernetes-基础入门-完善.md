@@ -833,6 +833,7 @@ vi ~/.kube/config
 hostnamectl set-hostname k8s-01
 # 设置 hostname 解析
 echo "127.0.0.1   $(hostname)" >> /etc/hosts
+echo "127.0.0.1   localhost" >> /etc/hosts
 ```
 
 - 2、所有机器批量执行如下脚本
