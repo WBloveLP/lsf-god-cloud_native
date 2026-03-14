@@ -369,7 +369,7 @@ rook-ceph-osd-prepare-node3-w4xyz                    0/2     Completed   0      
 
 cd /root/rook/cluster/examples/kubernetes/ceph
 
-kubectl delete -f crds.yaml -f common.yaml -f operator.yaml  -f cluster.yaml
+kubectl delete -f crds.yaml -f common.yaml -f  -f cluster.yaml operator.yaml
 
 kubectl -n rook-ceph patch cephclusters.ceph.rook.io rook-ceph -p '{"metadata":{"finalizers": []}}' --type=merge
 
