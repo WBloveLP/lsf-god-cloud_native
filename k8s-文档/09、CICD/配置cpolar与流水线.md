@@ -138,7 +138,7 @@ spec:
 # pipeline测试：配Pod Template
 
 
-制作拥有jnlp+docker+maven的镜像：【crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com/lpruoyu/with-docker-maven-jnlp-jdk21:latest】
+制作拥有jnlp+docker+maven的镜像：【crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com/lpruoyu/jnlp-with-docker-maven:useroot】
 
 
 ```
@@ -169,18 +169,30 @@ RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.
     && rm -rf /tmp/docker \
     && chown jenkins:jenkins /usr/local/bin/docker
 
-# 创建 Maven 配置目录（jenkins 用户可读写）
-RUN mkdir -p /home/jenkins/.m2 \
-    && chown -R jenkins:jenkins /home/jenkins/.m2
+# 创建你指定的挂载目录
+RUN mkdir -p /root/maven/.m2 \
+    && chown -R jenkins:jenkins /root/maven
 
-# 设置环境变量（适配 jenkins 用户）
+# 1. 删除自带 settings.xml，替换为挂载的配置文件
+RUN rm -f ${MAVEN_HOME}/conf/settings.xml \
+    && ln -s /root/maven/settings.xml ${MAVEN_HOME}/conf/settings.xml
+
+# 2. 直接指定 Maven 工作目录为挂载目录（最稳妥）
+RUN rm -rf /home/jenkins/.m2 \
+    && ln -s /root/maven/.m2 /home/jenkins/.m2 \
+    && chown -R jenkins:jenkins /home/jenkins/.m2 \
+    && chown -R jenkins:jenkins /root/maven/.m2
+
+# 设置环境变量
 ENV MAVEN_HOME=${MAVEN_HOME} \
     M2_HOME=${MAVEN_HOME} \
-    M2=/opt/maven/bin \
     PATH=${MAVEN_HOME}/bin:${PATH} \
     DOCKER_HOST=unix:///var/run/docker.sock
 
 WORKDIR /home/jenkins/agent
+
+# 切换回 Jenkins 运行用户
+USER jenkins
 ```
 
 

@@ -55,12 +55,14 @@ pipeline {
         )
     }
 
-    //构建阶段sss
+    //构建阶段
     stages {
         stage('环境预准备') {
             steps {
                 //把代码全部打包共享到以后的流程
                 stash includes: '**/**', name: 'ruoyigit'
+
+
                 sh 'pwd && ls -alh'
 //
                 sh "echo ==============远程触发基本信息如下============="
@@ -90,7 +92,6 @@ pipeline {
                                 def x = change.substring(i + 1)
                                 change += x.substring(0, x.indexOf('/'))
                             }
-
                         }
                         //去掉多余引号
                         h.add(change.replaceAll('"', ''));
@@ -136,7 +137,7 @@ pipeline {
                         label "maven"
                     }
                     steps {
-                        unstash 'ruoyigit'
+                        unstash 'ruoyigit' #拿到之前stash到的代码
                         sh 'mvn clean package -s "/app/maven/settings.xml"  -Dmaven.test.skip=true'
                         sh 'pwd && ls -alh'
                     }
