@@ -1086,7 +1086,7 @@ kubectl exec -it  hello-redis  -- /bin/bash
 
 docker是每一个worker节点的运行时环境
 
-kubelet负责控制所有容器的启动停止，保证节点工作正常，已经帮助节点交互master
+kubelet负责控制所有容器的启动停止，保证节点工作正常，以及帮助节点交互master
 
 master节点的关键组件：
 
