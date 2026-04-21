@@ -1,0 +1,8 @@
+spring:
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true   # 开启基于 K8s Service 的服务发现
+        all-namespaces: false  # 是否跨命名空间发现
+  application:
+    name: cicd_demo_order

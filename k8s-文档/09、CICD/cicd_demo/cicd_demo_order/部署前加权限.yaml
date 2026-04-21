@@ -1,0 +1,59 @@
+# 新建用户给应用
+# 部署配合：serviceAccountName: myapp-sa 使用
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myapp-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: myapp-discovery
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints", "pods", "services"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: myapp-discovery-binding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: myapp-sa
+    namespace: default
+roleRef:
+  kind: Role
+  name: myapp-discovery
+  apiGroup: rbac.authorization.k8s.io
+
+
+
+# 或者直接修改应用所在名称空间的权限
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: service-reader
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "services", "endpoints", "pods" ]
+    verbs: [ "get", "list", "watch" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: default
+  name: default-service-reader
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+roleRef:
+  kind: Role
+  name: service-reader
+  apiGroup: rbac.authorization.k8s.io

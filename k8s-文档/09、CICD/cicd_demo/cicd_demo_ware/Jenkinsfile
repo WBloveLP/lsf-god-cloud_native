@@ -1,0 +1,82 @@
+// docker login --username=nick1928495244 crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com【已经搞了一个jenkins的全局凭据：aliyun-login】
+// docker push crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com/lpruoyu/ware:[镜像版本号]
+
+pipeline {
+    agent none  // 必须添加全局 agent，或者指定 agent none
+
+    environment {
+        REGISTRY = 'crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com'
+        NAMESPACE = 'lpruoyu'
+        IMAGE_NAME = 'ware'
+        VERSION = "${BUILD_NUMBER}"
+        FULL_IMAGE = "${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${VERSION}"
+        ALIYUN_CREDENTIALS_ID = 'aliyun-login'
+    }
+
+    stages {
+        stage('Maven 编译 & 镜像构建推送') {
+            agent { label 'mjnlpdockermaven' }
+            steps {
+                sh '''
+                    mvn clean package -DskipTests
+                '''
+                sh '''
+                    cat > Dockerfile <<EOF
+FROM eclipse-temurin:21-jdk
+RUN mkdir -p /app
+COPY target/*.jar /app/app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+EOF
+                '''
+                sh """
+                    docker build -t ${FULL_IMAGE} .
+                    docker tag ${FULL_IMAGE} ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:latest
+                """
+                withCredentials([usernamePassword(
+                    credentialsId: env.ALIYUN_CREDENTIALS_ID,
+                    usernameVariable: 'ALIYUN_USER',
+                    passwordVariable: 'ALIYUN_PASS'
+                )]) {
+                    sh """
+                        docker login --username=${ALIYUN_USER} --password=${ALIYUN_PASS} ${REGISTRY}
+                        docker push ${FULL_IMAGE}
+                        docker push ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:latest
+                    """
+                }
+                writeFile file: 'version.txt', text: "${VERSION}"
+                stash name: 'version', includes: 'version.txt'
+            }
+        }
+
+        stage('Kubectl 部署') {
+            agent { label 'kubectl' }
+            steps {
+                container('kubectl') {
+                    unstash 'version'
+                    // 关键修改：使用 script 块包裹变量定义
+                    script {
+                        def VERSION = readFile('version.txt').trim()
+                        def FULL_IMAGE = "${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${VERSION}"
+                        sh """
+                            kubectl set image deployment/ware ware=${FULL_IMAGE} -n default
+                            kubectl rollout status deployment/ware -n default
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+
+    post {
+        success {
+            echo "流水线成功！镜像地址：${FULL_IMAGE}"
+        }
+        failure {
+            echo "流水线失败，请检查日志。"
+        }
+    }
+}
+
+// TODO 部署完成后删除打包好的本地镜像

@@ -1,0 +1,45 @@
+# 生产环境肯定不放在代码中，这儿是为了方便
+# 提前部署进去
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  namespace: default
+  labels:
+    app: order
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+#      serviceAccountName: myapp-sa
+      containers:
+        - name: order
+          image: crpi-co509r5gdyecg5t2.cn-hangzhou.personal.cr.aliyuncs.com/lpruoyu/order:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: default
+  labels:
+    app: order
+spec:
+  selector:
+    app: order
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
