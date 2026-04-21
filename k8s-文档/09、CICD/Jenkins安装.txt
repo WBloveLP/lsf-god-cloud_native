@@ -1,0 +1,23 @@
+**！！直接用最新版Jenkins！！**
+
+
+
+常见位置可能有：
+/var/run/docker.sock
+/run/docker.sock
+/var/run/podman/podman.sock
+jenkins要用到宿主机的docker，通过 which docker 命令查询后，发现应这样挂载：-v /usr/bin/docker:/usr/bin/docker   -v /run/docker.sock:/var/run/docker.sock 
+Linux有自己的挂载路径，去查就好。
+
+
+docker run   -u  root    -d    -p 8080:8080 -p 50000:50000  --name   jenkinsdemo -v /usr/bin/docker:/usr/bin/docker   -v /run/docker.sock:/var/run/docker.sock   jenkins/jenkins
+
+
+
+
+
+
+
+如果不能下载插件：
+/var/jenkins_home/updates/default.json：www.google.com ==> www.baidu.com
+重启jenkins
